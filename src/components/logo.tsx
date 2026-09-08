@@ -8,7 +8,7 @@ export function Logo({ className }: { className?: string }) {
         <Gauge className="size-4" weight="fill" />
       </span>
       <span className="text-[15px] font-semibold tracking-tight text-foreground">
-        Guard
+        Budgetly
       </span>
     </div>
   )
