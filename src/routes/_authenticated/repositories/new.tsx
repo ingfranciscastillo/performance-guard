@@ -10,7 +10,11 @@ import {
 	ShieldCheckIcon,
 	StarIcon,
 } from "@phosphor-icons/react";
-import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import {
+	useMutation,
+	useQueryClient,
+	useSuspenseQuery,
+} from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
@@ -105,12 +109,14 @@ function ConnectRepo() {
 	const allFilteredSelected =
 		filtered.length > 0 && filtered.every((r) => selected.includes(r.id));
 
+	const queryClient = useQueryClient();
 	const connectMutation = useMutation({
 		mutationFn: connectRepositories,
 		onSuccess: ({ connected }) => {
 			toast.success(
 				`Connected ${connected} ${connected === 1 ? "repository" : "repositories"}`,
 			);
+			queryClient.invalidateQueries({ queryKey: ["repos"] });
 			navigate({ to: "/repositories" });
 		},
 		onError: (error) => {

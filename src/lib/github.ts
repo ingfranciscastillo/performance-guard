@@ -1,3 +1,5 @@
+import { timeAgo } from "@/lib/format";
+
 export interface GhRepo {
 	id: string;
 	name: string;
@@ -21,16 +23,6 @@ interface GithubApiRepo {
 	language: string | null;
 	pushed_at: string | null;
 	owner: { login: string };
-}
-
-function timeAgo(iso: string | null): string {
-	if (!iso) return "never";
-	const ms = Date.now() - new Date(iso).getTime();
-	const hours = Math.floor(ms / 3_600_000);
-	if (hours < 1) return "just now";
-	if (hours < 24) return `${hours}h ago`;
-	const days = Math.floor(hours / 24);
-	return `${days}d ago`;
 }
 
 function mapRepo(r: GithubApiRepo): GhRepo {
