@@ -10,6 +10,7 @@ import {
 	ShieldCheckIcon,
 	StarIcon,
 } from "@phosphor-icons/react";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
@@ -27,8 +28,14 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { connectRepositories } from "@/lib/github.functions";
+import { connectableReposQueryOptions } from "@/lib/github.queries";
 
 export const Route = createFileRoute("/_authenticated/repositories/new")({
+	// loader must come before head — with both present on a route, head-before-loader
+	// breaks TanStack Router's Route.useLoaderData() type inference (returns undefined).
+	loader: ({ context }) =>
+		context.queryClient.ensureQueryData(connectableReposQueryOptions()),
 	head: () => ({
 		meta: [
 			{ title: "Connect a repository: Budgetly" },
@@ -41,98 +48,6 @@ export const Route = createFileRoute("/_authenticated/repositories/new")({
 	}),
 	component: ConnectRepo,
 });
-
-type GhRepo = {
-	id: string;
-	name: string;
-	fullName: string;
-	defaultBranch: string;
-	private: boolean;
-	stars: number;
-	language: string;
-	updated: string;
-	org: string;
-};
-
-const AVAILABLE: GhRepo[] = [
-	{
-		id: "1",
-		name: "marketing",
-		fullName: "acme/marketing",
-		defaultBranch: "main",
-		private: false,
-		stars: 142,
-		language: "TypeScript",
-		updated: "2h ago",
-		org: "acme",
-	},
-	{
-		id: "2",
-		name: "checkout",
-		fullName: "acme/checkout",
-		defaultBranch: "main",
-		private: true,
-		stars: 0,
-		language: "TypeScript",
-		updated: "1d ago",
-		org: "acme",
-	},
-	{
-		id: "3",
-		name: "design-system",
-		fullName: "acme/design-system",
-		defaultBranch: "main",
-		private: false,
-		stars: 318,
-		language: "TypeScript",
-		updated: "5h ago",
-		org: "acme",
-	},
-	{
-		id: "4",
-		name: "mobile-web",
-		fullName: "acme/mobile-web",
-		defaultBranch: "develop",
-		private: true,
-		stars: 0,
-		language: "JavaScript",
-		updated: "3d ago",
-		org: "acme",
-	},
-	{
-		id: "5",
-		name: "blog",
-		fullName: "acme-labs/blog",
-		defaultBranch: "main",
-		private: false,
-		stars: 24,
-		language: "MDX",
-		updated: "12h ago",
-		org: "acme-labs",
-	},
-	{
-		id: "6",
-		name: "playground",
-		fullName: "acme-labs/playground",
-		defaultBranch: "main",
-		private: false,
-		stars: 9,
-		language: "TypeScript",
-		updated: "4d ago",
-		org: "acme-labs",
-	},
-	{
-		id: "7",
-		name: "perf-experiments",
-		fullName: "acme-labs/perf-experiments",
-		defaultBranch: "main",
-		private: true,
-		stars: 0,
-		language: "TypeScript",
-		updated: "6h ago",
-		org: "acme-labs",
-	},
-];
 
 const PRESETS = [
 	{
@@ -159,6 +74,7 @@ const PRESETS = [
 ];
 
 function ConnectRepo() {
+	const { data: available } = useSuspenseQuery(connectableReposQueryOptions());
 	const navigate = useNavigate();
 	const [query, setQuery] = useState("");
 	const [org, setOrg] = useState<string>("all");
@@ -168,18 +84,18 @@ function ConnectRepo() {
 	const [postComments, setPostComments] = useState(true);
 
 	const orgs = useMemo(
-		() => Array.from(new Set(AVAILABLE.map((r) => r.org))),
-		[],
+		() => Array.from(new Set(available.map((r) => r.org))),
+		[available],
 	);
 	const filtered = useMemo(
 		() =>
-			AVAILABLE.filter(
+			available.filter(
 				(r) =>
 					(org === "all" || r.org === org) &&
 					(query.trim() === "" ||
 						r.fullName.toLowerCase().includes(query.toLowerCase())),
 			),
-		[query, org],
+		[available, query, org],
 	);
 
 	const toggle = (id: string) =>
@@ -189,15 +105,38 @@ function ConnectRepo() {
 	const allFilteredSelected =
 		filtered.length > 0 && filtered.every((r) => selected.includes(r.id));
 
+	const connectMutation = useMutation({
+		mutationFn: connectRepositories,
+		onSuccess: ({ connected }) => {
+			toast.success(
+				`Connected ${connected} ${connected === 1 ? "repository" : "repositories"}`,
+			);
+			navigate({ to: "/repositories" });
+		},
+		onError: (error) => {
+			toast.error(error instanceof Error ? error.message : "Could not connect");
+		},
+	});
+
 	const onConnect = () => {
 		if (selected.length === 0) {
 			toast.error("Select at least one repository");
 			return;
 		}
-		toast.success(
-			`Connected ${selected.length} ${selected.length === 1 ? "repository" : "repositories"}`,
-		);
-		navigate({ to: "/repositories" });
+		const chosen = available.filter((r) => selected.includes(r.id));
+		connectMutation.mutate({
+			data: {
+				repos: chosen.map((r) => ({
+					id: r.id,
+					name: r.name,
+					fullName: r.fullName,
+					defaultBranch: r.defaultBranch,
+					private: r.private,
+				})),
+				preset,
+				branchProtect,
+			},
+		});
 	};
 
 	return (
@@ -442,10 +381,17 @@ function ConnectRepo() {
 										{selected.length}
 									</span>
 								</div>
-								<Button className="mt-4 w-full" onClick={onConnect}>
-									Connect {selected.length > 0 ? `${selected.length} ` : ""}
-									repositor{selected.length === 1 ? "y" : "ies"}{" "}
-									<CaretRightIcon className="h-4 w-4 ml-1" />
+								<Button
+									className="mt-4 w-full"
+									onClick={onConnect}
+									disabled={connectMutation.isPending}
+								>
+									{connectMutation.isPending
+										? "Connecting…"
+										: `Connect ${selected.length > 0 ? `${selected.length} ` : ""}repositor${selected.length === 1 ? "y" : "ies"}`}
+									{!connectMutation.isPending && (
+										<CaretRightIcon className="h-4 w-4 ml-1" />
+									)}
 								</Button>
 								<Link to="/repositories" className="mt-2 block">
 									<Button variant="ghost" className="w-full">
