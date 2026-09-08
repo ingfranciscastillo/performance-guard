@@ -4,6 +4,8 @@ import {
 	GithubLogoIcon,
 } from "@phosphor-icons/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useEffect, useState } from "react";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
@@ -25,60 +27,23 @@ export const Route = createFileRoute("/login")({
 
 function Login() {
 	return (
-		<div className="min-h-screen grid md:grid-cols-2 bg-background text-foreground">
-			{/* Brand / preview panel */}
-			<aside className="relative hidden md:flex flex-col justify-between overflow-hidden border-r border-border bg-linear-to-br from-primary/10 via-background to-background p-10">
-				{/* Decorative brand blobs */}
-				<div
-					aria-hidden
-					className="pointer-events-none absolute -top-24 -left-24 h-80 w-80 rounded-full bg-primary/30 blur-3xl"
-				/>
-				<div
-					aria-hidden
-					className="pointer-events-none absolute top-1/2 -right-20 h-72 w-72 rounded-full bg-primary/20 blur-3xl"
-				/>
-				<div
-					aria-hidden
-					className="pointer-events-none absolute -bottom-28 left-1/3 h-72 w-72 rounded-full bg-primary/15 blur-3xl"
-				/>
+		<div className="grid min-h-screen bg-background text-foreground md:grid-cols-2">
+			<aside className="hidden flex-col justify-between border-r border-border bg-muted/30 p-10 md:flex">
+				<Link
+					to="/"
+					className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+				>
+					<ArrowLeftIcon className="h-4 w-4" /> Back to home
+				</Link>
 
-				<div className="relative z-10 flex items-center justify-between">
-					<Link
-						to="/"
-						className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-					>
-						<ArrowLeftIcon className="h-4 w-4" /> Back to home
-					</Link>
+				<div className="flex flex-1 items-center justify-center py-10">
+					<PrCheckPreview />
 				</div>
 
-				<div className="relative z-10 flex-1 flex items-center justify-center py-10">
-					<FloatingPreview />
-				</div>
-
-				<div className="relative z-10 max-w-md">
-					<p className="text-base leading-relaxed text-foreground/90">
-						"Budgetly caught a 38% LCP regression before it hit prod. It paid
-						for itself in one sprint."
-					</p>
-					<div className="mt-4 flex items-center gap-3 text-sm text-muted-foreground">
-						<div className="h-8 w-8 rounded-full bg-primary/30 grid place-items-center font-mono text-xs text-foreground">
-							MR
-						</div>
-						<div>
-							<div className="font-medium text-foreground">Marta Ruiz</div>
-							<div className="text-xs">Staff Engineer, Acme Storefront</div>
-						</div>
-					</div>
-					<div className="mt-8 flex items-center gap-1.5">
-						<span className="h-1.5 w-6 rounded-full bg-primary" />
-						<span className="h-1.5 w-1.5 rounded-full bg-foreground/20" />
-						<span className="h-1.5 w-1.5 rounded-full bg-foreground/20" />
-					</div>
-				</div>
+				<TestimonialCarousel />
 			</aside>
 
-			{/* Login panel */}
-			<section className="relative flex flex-col px-6 sm:px-10 py-8">
+			<section className="relative flex flex-col px-6 py-8 sm:px-10">
 				<div className="flex items-center justify-between">
 					<Link to="/">
 						<Logo />
@@ -86,12 +51,12 @@ function Login() {
 					<ThemeToggle />
 				</div>
 
-				<div className="flex-1 flex items-center">
-					<div className="w-full max-w-sm mx-auto">
-						<h1 className="text-3xl sm:text-4xl font-semibold tracking-tight">
+				<div className="flex flex-1 items-center">
+					<div className="mx-auto w-full max-w-sm">
+						<h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
 							Welcome back
 						</h1>
-						<p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+						<p className="mt-3 text-sm leading-relaxed text-muted-foreground">
 							Sign in with GitHub to keep performance budgets enforced on every
 							pull request. We only request the minimum scopes needed.
 						</p>
@@ -139,7 +104,7 @@ function Login() {
 					</div>
 				</div>
 
-				<div className="text-xs text-muted-foreground font-mono">
+				<div className="font-mono text-xs text-muted-foreground">
 					© {new Date().getFullYear()} Budgetly Labs
 				</div>
 			</section>
@@ -147,58 +112,124 @@ function Login() {
 	);
 }
 
-function FloatingPreview() {
+const TESTIMONIALS = [
+	{
+		quote:
+			"Budgetly caught a 38% LCP regression before it hit prod. It paid for itself in one sprint.",
+		name: "Marta Ruiz",
+		role: "Staff Engineer, Acme Storefront",
+		initials: "MR",
+	},
+	{
+		quote:
+			"Our PR reviews used to skip performance entirely. Now it's a required check, not a suggestion.",
+		name: "Noor Aljasmi",
+		role: "Engineering Manager, Rivergate",
+		initials: "NA",
+	},
+	{
+		quote:
+			"Per-route budgets caught a checkout regression our monitoring never would have flagged.",
+		name: "Tomás Ferreira",
+		role: "Platform Lead, Basalt Health",
+		initials: "TF",
+	},
+];
+
+function TestimonialCarousel() {
+	const [index, setIndex] = useState(0);
+	const reduce = useReducedMotion();
+
+	useEffect(() => {
+		if (reduce) return;
+		const id = setInterval(() => {
+			setIndex((i) => (i + 1) % TESTIMONIALS.length);
+		}, 6000);
+		return () => clearInterval(id);
+	}, [reduce, index]);
+
+	const t = TESTIMONIALS[index];
+
 	return (
-		<div className="w-full max-w-md -rotate-2">
-			<div className="rounded-xl border border-border bg-card shadow-[0_30px_80px_-30px_oklch(0.56_0.19_260/0.4)] overflow-hidden">
-				<div className="flex items-center gap-2 border-b border-border bg-muted/40 px-4 py-2.5 text-xs font-mono text-muted-foreground">
-					<div className="flex gap-1.5">
-						<span className="h-2.5 w-2.5 rounded-full bg-destructive/60" />
-						<span className="h-2.5 w-2.5 rounded-full bg-warning/70" />
-						<span className="h-2.5 w-2.5 rounded-full bg-success/70" />
-					</div>
-					<span className="ml-3">acme/web, PR #1247</span>
-				</div>
-				<div className="grid grid-cols-2 divide-x divide-y divide-border bg-card">
-					{[
-						{ k: "LCP", v: "3.42s", d: "+38%", bad: true },
-						{ k: "INP", v: "182ms", d: "-4%", bad: false },
-						{ k: "CLS", v: "0.07", d: "+0.01", bad: false },
-						{ k: "Score", v: "71", d: "-19", bad: true },
-					].map((m) => (
-						<div key={m.k} className="p-4">
-							<div className="text-[10px] uppercase tracking-wider text-muted-foreground">
-								{m.k}
+		<div className="max-w-md">
+			<div className="min-h-20">
+				<AnimatePresence mode="wait">
+					<motion.div
+						key={index}
+						initial={reduce ? false : { opacity: 0, y: 6 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={reduce ? undefined : { opacity: 0, y: -6 }}
+						transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+					>
+						<p className="text-base leading-relaxed text-foreground/90">
+							"{t.quote}"
+						</p>
+						<div className="mt-4 flex items-center gap-3 text-sm text-muted-foreground">
+							<div className="grid h-8 w-8 shrink-0 place-items-center bg-primary/15 font-mono text-xs text-primary">
+								{t.initials}
 							</div>
-							<div className="mt-1.5 font-mono text-xl font-semibold">
-								{m.v}
-							</div>
-							<div
-								className={`mt-0.5 font-mono text-[11px] ${m.bad ? "text-destructive" : "text-success"}`}
-							>
-								{m.d} vs main
+							<div>
+								<div className="font-medium text-foreground">{t.name}</div>
+								<div className="text-xs">{t.role}</div>
 							</div>
 						</div>
-					))}
-				</div>
-				<div className="border-t border-border bg-muted/30 p-3 font-mono text-[11px]">
-					<div className="text-destructive">
-						✗ LCP budget exceeded, blocking merge
-					</div>
-					<div className="text-success">✓ INP within budget</div>
-				</div>
+					</motion.div>
+				</AnimatePresence>
 			</div>
+			<div className="mt-8 flex items-center gap-1.5">
+				{TESTIMONIALS.map((testimonial, i) => (
+					<button
+						key={testimonial.name}
+						type="button"
+						onClick={() => setIndex(i)}
+						aria-label={`Show testimonial from ${testimonial.name}`}
+						aria-current={i === index}
+						className={`h-1.5 rounded-full transition-all ${
+							i === index ? "w-6 bg-brand" : "w-1.5 bg-foreground/20"
+						}`}
+					/>
+				))}
+			</div>
+		</div>
+	);
+}
 
-			{/* Floating mini-badge */}
-			<div className="relative">
-				<div className="absolute -top-6 -right-4 rotate-6 rounded-lg border border-border bg-card px-3 py-2 shadow-lg">
-					<div className="text-[9px] uppercase tracking-wider text-muted-foreground">
-						Visitors
-					</div>
-					<div className="font-mono text-sm font-semibold">
-						20,345 <span className="text-primary text-[10px]">+53%</span>
-					</div>
+function PrCheckPreview() {
+	return (
+		<div className="w-full max-w-md border border-border bg-card">
+			<div className="flex items-center gap-2 border-b border-border bg-muted/40 px-4 py-2.5 font-mono text-xs text-muted-foreground">
+				<div className="flex gap-1.5">
+					<span className="h-2.5 w-2.5 rounded-full bg-destructive/60" />
+					<span className="h-2.5 w-2.5 rounded-full bg-warning/70" />
+					<span className="h-2.5 w-2.5 rounded-full bg-success/70" />
 				</div>
+				<span className="ml-3">acme/web, PR #1247</span>
+			</div>
+			<div className="grid grid-cols-2 divide-x divide-y divide-border">
+				{[
+					{ k: "LCP", v: "3.42s", d: "+38%", bad: true },
+					{ k: "INP", v: "182ms", d: "-4%", bad: false },
+					{ k: "CLS", v: "0.07", d: "+0.01", bad: false },
+					{ k: "Score", v: "71", d: "-19", bad: true },
+				].map((m) => (
+					<div key={m.k} className="p-4">
+						<div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+							{m.k}
+						</div>
+						<div className="mt-1.5 font-mono text-xl font-semibold">{m.v}</div>
+						<div
+							className={`mt-0.5 font-mono text-[11px] ${m.bad ? "text-destructive" : "text-success"}`}
+						>
+							{m.d} vs main
+						</div>
+					</div>
+				))}
+			</div>
+			<div className="border-t border-border bg-muted/30 p-3 font-mono text-[11px]">
+				<div className="text-destructive">
+					✗ LCP budget exceeded, blocking merge
+				</div>
+				<div className="text-success">✓ INP within budget</div>
 			</div>
 		</div>
 	);
