@@ -112,10 +112,16 @@ function ConnectRepo() {
 	const queryClient = useQueryClient();
 	const connectMutation = useMutation({
 		mutationFn: connectRepositories,
-		onSuccess: ({ connected }) => {
+		onSuccess: ({ connected, workflowsAdded, workflowErrors }) => {
 			toast.success(
-				`Connected ${connected} ${connected === 1 ? "repository" : "repositories"}`,
+				`Connected ${connected} ${connected === 1 ? "repository" : "repositories"}` +
+					(workflowsAdded > 0
+						? `, added the Budgetly workflow to ${workflowsAdded}`
+						: ""),
 			);
+			for (const err of workflowErrors) {
+				toast.error(`Couldn't add workflow to ${err}`);
+			}
 			queryClient.invalidateQueries({ queryKey: ["repos"] });
 			navigate({ to: "/repositories" });
 		},

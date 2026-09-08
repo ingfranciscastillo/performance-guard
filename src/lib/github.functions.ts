@@ -3,31 +3,30 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { account, budgets, repos } from "@/db/schema";
 import { ensureSession } from "@/lib/auth.functions";
-import { type GhRepo, listGithubRepos } from "@/lib/github";
+import { commitWorkflowFile, type GhRepo, listGithubRepos } from "@/lib/github";
 import type { Action, MetricKey, Severity } from "@/lib/mock-data";
+import { budgetlyWorkflowYaml } from "@/lib/workflow-template";
+
+async function getGithubAccessToken(userId: string): Promise<string> {
+	const [githubAccount] = await db
+		.select({ accessToken: account.accessToken })
+		.from(account)
+		.where(and(eq(account.userId, userId), eq(account.providerId, "github")))
+		.limit(1);
+
+	if (!githubAccount?.accessToken) {
+		throw new Error(
+			"No GitHub account connected. Sign in with GitHub to connect repositories.",
+		);
+	}
+	return githubAccount.accessToken;
+}
 
 export const getConnectableRepos = createServerFn({ method: "GET" }).handler(
 	async (): Promise<GhRepo[]> => {
 		const session = await ensureSession();
-
-		const [githubAccount] = await db
-			.select({ accessToken: account.accessToken })
-			.from(account)
-			.where(
-				and(
-					eq(account.userId, session.user.id),
-					eq(account.providerId, "github"),
-				),
-			)
-			.limit(1);
-
-		if (!githubAccount?.accessToken) {
-			throw new Error(
-				"No GitHub account connected. Sign in with GitHub to connect repositories.",
-			);
-		}
-
-		return listGithubRepos(githubAccount.accessToken);
+		const accessToken = await getGithubAccessToken(session.user.id);
+		return listGithubRepos(accessToken);
 	},
 );
 
@@ -94,8 +93,11 @@ export const connectRepositories = createServerFn({ method: "POST" })
 			);
 		}
 
+		const accessToken = await getGithubAccessToken(session.user.id);
 		const presetBudgets = PRESET_BUDGETS[data.preset] ?? [];
 		let connected = 0;
+		let workflowsAdded = 0;
+		const workflowErrors: string[] = [];
 
 		for (const repo of data.repos) {
 			const [inserted] = await db
@@ -131,7 +133,23 @@ export const connectRepositories = createServerFn({ method: "POST" })
 					})),
 				);
 			}
+
+			// Best-effort: a repo we can't write the workflow to (e.g. the OAuth
+			// token doesn't cover it, or GitHub API hiccup) still stays connected
+			// in Budgetly — the user can add the workflow by hand.
+			const workflowResult = await commitWorkflowFile(
+				accessToken,
+				repo.fullName,
+				budgetlyWorkflowYaml({
+					defaultBranch: repo.defaultBranch,
+					githubRepoId: repo.id,
+				}),
+			);
+			if (workflowResult.status === "created") workflowsAdded++;
+			if (workflowResult.status === "error") {
+				workflowErrors.push(`${repo.fullName}: ${workflowResult.message}`);
+			}
 		}
 
-		return { connected };
+		return { connected, workflowsAdded, workflowErrors };
 	});

@@ -101,6 +101,23 @@ export const pullRequests = pgTable(
 	],
 );
 
+/**
+ * A CI token that authenticates a GitHub Action's ingest requests for one
+ * organization. Only the SHA-256 hash is stored — the raw token is shown once
+ * at creation (createOrgToken) and never again, same as a GitHub PAT.
+ */
+export const orgTokens = pgTable("org_tokens", {
+	id: id(),
+	organizationId: text("organization_id")
+		.notNull()
+		.references(() => organization.id, { onDelete: "cascade" }),
+	tokenHash: text("token_hash").notNull().unique(),
+	/** Last 4 chars of the raw token, so a user can tell tokens apart in a list without re-seeing the value. */
+	lastFour: text("last_four").notNull(),
+	createdAt: timestamp("created_at").defaultNow().notNull(),
+	lastUsedAt: timestamp("last_used_at"),
+});
+
 export const alerts = pgTable("alerts", {
 	id: id(),
 	repoId: text("repo_id")
@@ -123,6 +140,13 @@ export const reposRelations = relations(repos, ({ many, one }) => ({
 	alerts: many(alerts),
 }));
 
+export const orgTokensRelations = relations(orgTokens, ({ one }) => ({
+	organization: one(organization, {
+		fields: [orgTokens.organizationId],
+		references: [organization.id],
+	}),
+}));
+
 export const budgetsRelations = relations(budgets, ({ one }) => ({
 	repo: one(repos, { fields: [budgets.repoId], references: [repos.id] }),
 }));
@@ -143,3 +167,5 @@ export type NewPullRequest = typeof pullRequests.$inferInsert;
 export type PullRequestRow = typeof pullRequests.$inferSelect;
 export type NewAlert = typeof alerts.$inferInsert;
 export type AlertRow = typeof alerts.$inferSelect;
+export type NewOrgToken = typeof orgTokens.$inferInsert;
+export type OrgTokenRow = typeof orgTokens.$inferSelect;

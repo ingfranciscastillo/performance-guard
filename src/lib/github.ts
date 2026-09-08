@@ -66,3 +66,54 @@ export async function listGithubRepos(accessToken: string): Promise<GhRepo[]> {
 	}
 	return repos;
 }
+
+export type CommitWorkflowResult =
+	| { status: "created" }
+	| { status: "already-exists" }
+	| { status: "error"; message: string };
+
+/**
+ * Commits the Budgetly GitHub Action workflow to a repo, at
+ * .github/workflows/budgetly.yml, using the user's own OAuth token (this
+ * shows up as a real commit authored by them). Never overwrites an existing
+ * file at that path — connecting a repo a second time, or a user who already
+ * has a workflow there, must not silently clobber it.
+ */
+export async function commitWorkflowFile(
+	accessToken: string,
+	fullName: string,
+	content: string,
+): Promise<CommitWorkflowResult> {
+	const path = ".github/workflows/budgetly.yml";
+	const url = `https://api.github.com/repos/${fullName}/contents/${path}`;
+	const headers = {
+		Authorization: `Bearer ${accessToken}`,
+		Accept: "application/vnd.github+json",
+		"X-GitHub-Api-Version": "2022-11-28",
+	};
+
+	const existing = await fetch(url, { headers });
+	if (existing.status === 200) return { status: "already-exists" };
+	if (existing.status !== 404) {
+		return {
+			status: "error",
+			message: `GitHub API error checking for existing file: ${existing.status}`,
+		};
+	}
+
+	const res = await fetch(url, {
+		method: "PUT",
+		headers: { ...headers, "content-type": "application/json" },
+		body: JSON.stringify({
+			message: "Add Budgetly performance budget workflow",
+			content: Buffer.from(content, "utf8").toString("base64"),
+		}),
+	});
+	if (!res.ok) {
+		return {
+			status: "error",
+			message: `GitHub API error: ${res.status} ${await res.text()}`,
+		};
+	}
+	return { status: "created" };
+}

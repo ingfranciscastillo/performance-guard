@@ -6,6 +6,7 @@ import {
 } from "@phosphor-icons/react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
+import { CiTokenCard } from "@/components/ci-token-card";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -54,6 +55,8 @@ function Settings() {
 							</div>
 						</div>
 					</Card>
+
+					<CiTokenCard />
 				</TabsContent>
 
 				<TabsContent
