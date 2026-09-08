@@ -91,11 +91,14 @@ export interface PullRequest {
 	baseline: Record<MetricKey, number>;
 }
 
+export type AlertChannel = "slack" | "discord" | "email";
+export type AlertLevel = "info" | "warning" | "critical";
+
 export interface AlertItem {
 	id: string;
 	repoId: string;
-	channel: "slack" | "discord" | "email";
-	level: "info" | "warning" | "critical";
+	channel: AlertChannel;
+	level: AlertLevel;
 	title: string;
 	message: string;
 	createdAt: string;

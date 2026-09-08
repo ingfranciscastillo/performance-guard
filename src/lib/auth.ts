@@ -1,5 +1,6 @@
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { betterAuth } from "better-auth";
+import { organization } from "better-auth/plugins/organization";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
@@ -33,5 +34,12 @@ export const auth = betterAuth({
 			"/api/auth/sign-up/email": { window: 60, max: 3 },
 		},
 	},
-	plugins: [tanstackStartCookies()],
+	plugins: [
+		// Default owner/admin/member roles and permissions for now. The product
+		// UI (team.tsx) shows Owner/Admin/Developer/Viewer — that's a separate
+		// custom-role/access-control decision, not made yet. Members keep the
+		// UI label as display text until real permission checks are designed.
+		organization(),
+		tanstackStartCookies(),
+	],
 });
