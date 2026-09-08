@@ -26,6 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getRepo, type MetricKey, PRS } from "@/lib/mock-data";
+import { EASE_OUT, staggerContainer, staggerItem } from "@/lib/motion";
 
 export const Route = createFileRoute("/")({
 	head: () => ({
@@ -65,45 +66,33 @@ function Landing() {
 	);
 }
 
-const heroContainer = {
-	hidden: {},
-	show: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
-};
-
 function Hero() {
 	const previewPr = PRS.find((p) => p.status === "failing") ?? PRS[0];
 	const previewRepo = getRepo(previewPr.repoId)!;
 	const previewMetrics: MetricKey[] = ["PERF", "LCP", "INP", "CLS"];
 	const reduce = useReducedMotion();
-	const heroItem = {
-		hidden: reduce ? {} : { opacity: 0, y: 14 },
-		show: {
-			opacity: 1,
-			y: 0,
-			transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] as const },
-		},
-	};
+	const item = staggerItem(reduce);
 
 	return (
 		<section className="border-b border-border">
 			<div className="mx-auto grid max-w-6xl items-center gap-12 px-5 pb-20 pt-20 lg:grid-cols-[1.05fr_1fr] lg:gap-10 lg:pt-24">
-				<motion.div initial="hidden" animate="show" variants={heroContainer}>
+				<motion.div initial="hidden" animate="show" variants={staggerContainer}>
 					<motion.h1
-						variants={heroItem}
+						variants={item}
 						className="text-4xl font-black leading-[1.05] tracking-tighter sm:text-5xl lg:text-6xl"
 					>
 						Stop shipping performance{" "}
 						<span className="text-brand">regressions.</span>
 					</motion.h1>
 					<motion.p
-						variants={heroItem}
+						variants={item}
 						className="mt-5 max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg"
 					>
 						Budgetly runs Lighthouse on every pull request, diffs it against
 						your baseline, and blocks merges that break Core Web Vitals.
 					</motion.p>
 					<motion.div
-						variants={heroItem}
+						variants={item}
 						className="mt-8 flex flex-wrap items-center gap-3"
 					>
 						<Link to="/login">
@@ -362,7 +351,7 @@ function AnimatedNumber({ value }: { value: number }) {
 		}
 		const controls = animate(0, value, {
 			duration: 0.8,
-			ease: [0.16, 1, 0.3, 1],
+			ease: EASE_OUT,
 			onUpdate: (v) => setDisplay(Math.round(v)),
 		});
 		return () => controls.stop();
@@ -465,7 +454,7 @@ function DashboardPreview() {
 									transition={{
 										duration: 0.4,
 										delay: Math.min(i * 0.012, 0.3),
-										ease: [0.16, 1, 0.3, 1],
+										ease: EASE_OUT,
 									}}
 									style={{ height: `${p.pct}%`, transformOrigin: "bottom" }}
 									className={`flex-1 ${p.pct < 50 ? "bg-destructive/60" : "bg-success/70"}`}

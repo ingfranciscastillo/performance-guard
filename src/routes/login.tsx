@@ -1,7 +1,9 @@
 import {
 	ArrowLeftIcon,
 	CheckCircleIcon,
+	CircleNotchIcon,
 	GithubLogoIcon,
+	WarningCircleIcon,
 } from "@phosphor-icons/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -10,6 +12,8 @@ import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
+import { linkUnderline } from "@/lib/link-hover";
+import { EASE_IN, EASE_OUT, staggerContainer, staggerItem } from "@/lib/motion";
 
 export const Route = createFileRoute("/login")({
 	head: () => ({
@@ -26,22 +30,47 @@ export const Route = createFileRoute("/login")({
 });
 
 function Login() {
+	const reduce = useReducedMotion();
+	const item = staggerItem(reduce);
+	const [status, setStatus] = useState<"idle" | "loading" | "error">("idle");
+
+	const handleSignIn = async () => {
+		setStatus("loading");
+		const { error } = await authClient.signIn.social({
+			provider: "github",
+			callbackURL: "/dashboard",
+		});
+		if (error) setStatus("error");
+	};
+
 	return (
 		<div className="grid min-h-screen bg-background text-foreground md:grid-cols-2">
-			<aside className="hidden flex-col justify-between border-r border-border bg-muted/30 p-10 md:flex">
-				<Link
-					to="/"
-					className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+			<motion.aside
+				initial="hidden"
+				animate="show"
+				variants={staggerContainer}
+				className="hidden flex-col justify-between border-r border-border bg-muted/30 p-10 md:flex"
+			>
+				<motion.div variants={item}>
+					<Link
+						to="/"
+						className={`inline-flex items-center gap-2 text-sm text-muted-foreground ${linkUnderline}`}
+					>
+						<ArrowLeftIcon className="h-4 w-4" /> Back to home
+					</Link>
+				</motion.div>
+
+				<motion.div
+					variants={item}
+					className="flex flex-1 items-center justify-center py-10"
 				>
-					<ArrowLeftIcon className="h-4 w-4" /> Back to home
-				</Link>
-
-				<div className="flex flex-1 items-center justify-center py-10">
 					<PrCheckPreview />
-				</div>
+				</motion.div>
 
-				<TestimonialCarousel />
-			</aside>
+				<motion.div variants={item}>
+					<TestimonialCarousel />
+				</motion.div>
+			</motion.aside>
 
 			<section className="relative flex flex-col px-6 py-8 sm:px-10">
 				<div className="flex items-center justify-between">
@@ -52,30 +81,65 @@ function Login() {
 				</div>
 
 				<div className="flex flex-1 items-center">
-					<div className="mx-auto w-full max-w-sm">
-						<h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+					<motion.div
+						initial="hidden"
+						animate="show"
+						variants={staggerContainer}
+						className="mx-auto w-full max-w-sm"
+					>
+						<motion.h1
+							variants={item}
+							className="text-3xl font-extrabold tracking-tight sm:text-4xl"
+						>
 							Welcome back
-						</h1>
-						<p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+						</motion.h1>
+						<motion.p
+							variants={item}
+							className="mt-3 text-sm leading-relaxed text-muted-foreground"
+						>
 							Sign in with GitHub to keep performance budgets enforced on every
 							pull request. We only request the minimum scopes needed.
-						</p>
+						</motion.p>
 
-						<Button
-							className="mt-8 w-full bg-foreground text-background hover:bg-foreground/90"
-							size="lg"
-							onClick={() => {
-								void authClient.signIn.social({
-									provider: "github",
-									callbackURL: "/dashboard",
-								});
-							}}
+						<motion.div variants={item}>
+							<Button
+								className="mt-8 w-full bg-foreground text-background hover:bg-foreground/90"
+								size="lg"
+								disabled={status === "loading"}
+								onClick={handleSignIn}
+							>
+								{status === "loading" ? (
+									<>
+										<CircleNotchIcon className="mr-2 h-4 w-4 animate-spin" />
+										Redirecting to GitHub...
+									</>
+								) : (
+									<>
+										<GithubLogoIcon className="mr-2 h-4 w-4" weight="fill" />
+										Continue with GitHub
+									</>
+								)}
+							</Button>
+							<AnimatePresence>
+								{status === "error" && (
+									<motion.p
+										initial={reduce ? false : { opacity: 0, y: -4 }}
+										animate={{ opacity: 1, y: 0 }}
+										exit={reduce ? undefined : { opacity: 0, y: -4 }}
+										transition={{ duration: 0.2, ease: EASE_OUT }}
+										className="mt-3 flex items-center gap-1.5 text-xs text-destructive"
+									>
+										<WarningCircleIcon className="h-3.5 w-3.5 shrink-0" />
+										Couldn't reach GitHub. Check your connection and try again.
+									</motion.p>
+								)}
+							</AnimatePresence>
+						</motion.div>
+
+						<motion.ul
+							variants={item}
+							className="mt-6 space-y-2 text-xs text-muted-foreground"
 						>
-							<GithubLogoIcon className="mr-2 h-4 w-4" weight="fill" /> Continue
-							with GitHub
-						</Button>
-
-						<ul className="mt-6 space-y-2 text-xs text-muted-foreground">
 							<li className="flex items-center gap-2">
 								<CheckCircleIcon className="h-3.5 w-3.5 text-primary" /> Read
 								access to PRs and commits
@@ -88,20 +152,23 @@ function Login() {
 								<CheckCircleIcon className="h-3.5 w-3.5 text-primary" /> Revoke
 								anytime from GitHub settings
 							</li>
-						</ul>
+						</motion.ul>
 
-						<div className="mt-10 text-xs text-muted-foreground">
+						<motion.div
+							variants={item}
+							className="mt-10 text-xs text-muted-foreground"
+						>
 							By continuing you agree to our{" "}
-							<a href="#" className="underline hover:text-foreground">
+							<a href="#" className={linkUnderline}>
 								Terms
 							</a>{" "}
 							and{" "}
-							<a href="#" className="underline hover:text-foreground">
+							<a href="#" className={linkUnderline}>
 								Privacy Policy
 							</a>
 							.
-						</div>
-					</div>
+						</motion.div>
+					</motion.div>
 				</div>
 
 				<div className="font-mono text-xs text-muted-foreground">
@@ -161,9 +228,20 @@ function TestimonialCarousel() {
 					<motion.div
 						key={index}
 						initial={reduce ? false : { opacity: 0, y: 6 }}
-						animate={{ opacity: 1, y: 0 }}
-						exit={reduce ? undefined : { opacity: 0, y: -6 }}
-						transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+						animate={{
+							opacity: 1,
+							y: 0,
+							transition: { duration: 0.35, ease: EASE_OUT },
+						}}
+						exit={
+							reduce
+								? undefined
+								: {
+										opacity: 0,
+										y: -4,
+										transition: { duration: 0.2, ease: EASE_IN },
+									}
+						}
 					>
 						<p className="text-base leading-relaxed text-foreground/90">
 							"{t.quote}"
@@ -202,7 +280,7 @@ function TestimonialCarousel() {
 
 function PrCheckPreview() {
 	return (
-		<div className="w-full max-w-md border border-border bg-card">
+		<div className="w-full max-w-md border border-border bg-card transition-colors duration-200 hover:border-foreground/25">
 			<div className="flex items-center gap-2 border-b border-border bg-muted/40 px-4 py-2.5 font-mono text-xs text-muted-foreground">
 				<div className="flex gap-1.5">
 					<span className="h-2.5 w-2.5 rounded-full bg-destructive/60" />

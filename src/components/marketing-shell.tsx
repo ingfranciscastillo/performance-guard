@@ -1,11 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { linkUnderline } from "@/lib/link-hover";
 import { Logo } from "./logo";
 import { ThemeToggle } from "./theme-toggle";
-
-const navLink =
-	"relative inline-block w-fit after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:origin-left after:scale-x-0 after:bg-foreground after:transition-transform after:duration-200 after:ease-out hover:text-foreground hover:after:scale-x-100";
 
 export function MarketingShell({ children }: { children: ReactNode }) {
 	return (
@@ -16,16 +14,16 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 						<Logo />
 					</Link>
 					<nav className="ml-10 hidden items-center gap-7 text-sm text-muted-foreground md:flex">
-						<a href="#features" className={navLink}>
+						<a href="#features" className={linkUnderline}>
 							Features
 						</a>
-						<a href="#how" className={navLink}>
+						<a href="#how" className={linkUnderline}>
 							How it works
 						</a>
-						<Link to="/pricing" className={navLink}>
+						<Link to="/pricing" className={linkUnderline}>
 							Pricing
 						</Link>
-						<a href="#faq" className={navLink}>
+						<a href="#faq" className={linkUnderline}>
 							FAQ
 						</a>
 					</nav>
@@ -63,15 +61,21 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 								Product
 							</div>
 							<div className="mt-3 flex flex-col items-start gap-2">
-								<a href="#features" className={`${navLink} text-foreground/80`}>
+								<a
+									href="#features"
+									className={`${linkUnderline} text-foreground/80`}
+								>
 									Features
 								</a>
-								<Link to="/pricing" className={`${navLink} text-foreground/80`}>
+								<Link
+									to="/pricing"
+									className={`${linkUnderline} text-foreground/80`}
+								>
 									Pricing
 								</Link>
 								<Link
 									to="/dashboard"
-									className={`${navLink} text-foreground/80`}
+									className={`${linkUnderline} text-foreground/80`}
 								>
 									Live demo
 								</Link>
@@ -82,10 +86,10 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 								Company
 							</div>
 							<div className="mt-3 flex flex-col items-start gap-2">
-								<a href="#" className={`${navLink} text-foreground/80`}>
+								<a href="#" className={`${linkUnderline} text-foreground/80`}>
 									Status
 								</a>
-								<a href="#" className={`${navLink} text-foreground/80`}>
+								<a href="#" className={`${linkUnderline} text-foreground/80`}>
 									Docs
 								</a>
 							</div>
@@ -95,10 +99,10 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 								Legal
 							</div>
 							<div className="mt-3 flex flex-col items-start gap-2">
-								<a href="#" className={`${navLink} text-foreground/80`}>
+								<a href="#" className={`${linkUnderline} text-foreground/80`}>
 									Privacy
 								</a>
-								<a href="#" className={`${navLink} text-foreground/80`}>
+								<a href="#" className={`${linkUnderline} text-foreground/80`}>
 									Terms
 								</a>
 							</div>
