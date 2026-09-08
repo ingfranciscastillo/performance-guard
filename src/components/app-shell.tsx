@@ -64,15 +64,19 @@ function NavList({ pathname }: { pathname: string }) {
 }
 
 function WorkspaceSwitcher() {
+	const { data: activeOrg, isPending } = authClient.useActiveOrganization();
+	const name = isPending ? "" : (activeOrg?.name ?? "No workspace");
+	const initial = name ? name.charAt(0).toUpperCase() : "?";
+
 	return (
 		<button
 			type="button"
 			className="flex w-full items-center gap-2 rounded-md border border-border bg-background/60 px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 		>
 			<span className="grid size-5 shrink-0 place-items-center rounded-sm bg-primary/15 text-[10px] font-semibold text-primary">
-				A
+				{initial}
 			</span>
-			<span className="truncate">acme</span>
+			<span className="truncate">{isPending ? "Loading…" : name}</span>
 			<CaretDown className="ml-auto size-3.5 shrink-0" weight="bold" />
 		</button>
 	);

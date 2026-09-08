@@ -62,6 +62,27 @@ export const auth = betterAuth({
 				},
 			},
 		},
+		session: {
+			create: {
+				// activeOrganizationId lives on the session row, not the user, so
+				// it starts null on every new session (each sign-in, each device)
+				// even once the user already has an org. Without this the
+				// WorkspaceSwitcher and every org-scoped query have nothing to
+				// point at. Picks the first org until real org-switching UI exists.
+				after: async (session, context) => {
+					if (session.activeOrganizationId || !context?.headers) return;
+					const orgs = await auth.api.listOrganizations({
+						headers: context.headers,
+					});
+					if (orgs[0]) {
+						await auth.api.setActiveOrganization({
+							headers: context.headers,
+							body: { organizationId: orgs[0].id },
+						});
+					}
+				},
+			},
+		},
 	},
 	plugins: [
 		// Default owner/admin/member roles and permissions for now. The product
