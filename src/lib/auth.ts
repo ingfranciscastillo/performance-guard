@@ -2,6 +2,7 @@ import { drizzleAdapter } from "@better-auth/drizzle-adapter";
 import { betterAuth } from "better-auth";
 import { organization } from "better-auth/plugins/organization";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 
@@ -69,16 +70,27 @@ export const auth = betterAuth({
 				// even once the user already has an org. Without this the
 				// WorkspaceSwitcher and every org-scoped query have nothing to
 				// point at. Picks the first org until real org-switching UI exists.
-				after: async (session, context) => {
-					if (session.activeOrganizationId || !context?.headers) return;
-					const orgs = await auth.api.listOrganizations({
-						headers: context.headers,
-					});
-					if (orgs[0]) {
-						await auth.api.setActiveOrganization({
-							headers: context.headers,
-							body: { organizationId: orgs[0].id },
-						});
+				//
+				// Set via `before` (mutating the row before insert), not `after` +
+				// auth.api.setActiveOrganization: that API resolves "current
+				// session" from the request's cookie header, which a fresh
+				// sign-in's request doesn't carry yet (the cookie is only set on
+				// the response about to be sent) — it throws UNAUTHORIZED. Querying
+				// membership directly by session.userId sidesteps that entirely.
+				before: async (session) => {
+					if (session.activeOrganizationId || !session.userId) return;
+					const [membership] = await db
+						.select({ organizationId: schema.member.organizationId })
+						.from(schema.member)
+						.where(eq(schema.member.userId, session.userId))
+						.limit(1);
+					if (membership) {
+						return {
+							data: {
+								...session,
+								activeOrganizationId: membership.organizationId,
+							},
+						};
 					}
 				},
 			},
