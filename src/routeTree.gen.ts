@@ -16,6 +16,9 @@ import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as AuthenticatedAlertsRouteImport } from './routes/_authenticated/alerts'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedSettingsRouteImport } from './routes/_authenticated/settings'
+import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/team'
+import { Route as AuthenticatedPullsIndexRouteImport } from './routes/_authenticated/pulls/index'
+import { Route as AuthenticatedPullsPrIdRouteImport } from './routes/_authenticated/pulls/$prId'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -52,6 +55,21 @@ const AuthenticatedSettingsRoute = AuthenticatedSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedTeamRoute = AuthenticatedTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedPullsIndexRoute = AuthenticatedPullsIndexRouteImport.update({
+  id: '/pulls/',
+  path: '/pulls/',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedPullsPrIdRoute = AuthenticatedPullsPrIdRouteImport.update({
+  id: '/pulls/$prId',
+  path: '/pulls/$prId',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -65,7 +83,10 @@ export interface FileRoutesByFullPath {
   '/alerts': typeof AuthenticatedAlertsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/team': typeof AuthenticatedTeamRoute
+  '/pulls/$prId': typeof AuthenticatedPullsPrIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/pulls/': typeof AuthenticatedPullsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -74,7 +95,10 @@ export interface FileRoutesByTo {
   '/alerts': typeof AuthenticatedAlertsRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/settings': typeof AuthenticatedSettingsRoute
+  '/team': typeof AuthenticatedTeamRoute
+  '/pulls/$prId': typeof AuthenticatedPullsPrIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/pulls': typeof AuthenticatedPullsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -85,7 +109,10 @@ export interface FileRoutesById {
   '/_authenticated/alerts': typeof AuthenticatedAlertsRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
+  '/_authenticated/team': typeof AuthenticatedTeamRoute
+  '/_authenticated/pulls/$prId': typeof AuthenticatedPullsPrIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/_authenticated/pulls/': typeof AuthenticatedPullsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -96,7 +123,10 @@ export interface FileRouteTypes {
     | '/alerts'
     | '/dashboard'
     | '/settings'
+    | '/team'
+    | '/pulls/$prId'
     | '/api/auth/$'
+    | '/pulls/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -105,7 +135,10 @@ export interface FileRouteTypes {
     | '/alerts'
     | '/dashboard'
     | '/settings'
+    | '/team'
+    | '/pulls/$prId'
     | '/api/auth/$'
+    | '/pulls'
   id:
     | '__root__'
     | '/'
@@ -115,7 +148,10 @@ export interface FileRouteTypes {
     | '/_authenticated/alerts'
     | '/_authenticated/dashboard'
     | '/_authenticated/settings'
+    | '/_authenticated/team'
+    | '/_authenticated/pulls/$prId'
     | '/api/auth/$'
+    | '/_authenticated/pulls/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -177,6 +213,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedSettingsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/team': {
+      id: '/_authenticated/team'
+      path: '/team'
+      fullPath: '/team'
+      preLoaderRoute: typeof AuthenticatedTeamRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/pulls/': {
+      id: '/_authenticated/pulls/'
+      path: '/pulls'
+      fullPath: '/pulls/'
+      preLoaderRoute: typeof AuthenticatedPullsIndexRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/pulls/$prId': {
+      id: '/_authenticated/pulls/$prId'
+      path: '/pulls/$prId'
+      fullPath: '/pulls/$prId'
+      preLoaderRoute: typeof AuthenticatedPullsPrIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -191,12 +248,18 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAlertsRoute: typeof AuthenticatedAlertsRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
+  AuthenticatedTeamRoute: typeof AuthenticatedTeamRoute
+  AuthenticatedPullsPrIdRoute: typeof AuthenticatedPullsPrIdRoute
+  AuthenticatedPullsIndexRoute: typeof AuthenticatedPullsIndexRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAlertsRoute: AuthenticatedAlertsRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
+  AuthenticatedTeamRoute: AuthenticatedTeamRoute,
+  AuthenticatedPullsPrIdRoute: AuthenticatedPullsPrIdRoute,
+  AuthenticatedPullsIndexRoute: AuthenticatedPullsIndexRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
