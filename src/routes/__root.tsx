@@ -10,6 +10,8 @@ import TanStackQueryDevtools from '../integrations/tanstack-query/devtools'
 
 import { getLocale } from '#/paraglide/runtime'
 
+import { Toaster } from 'react-hot-toast'
+
 import { ThemeProvider } from '../components/theme-provider'
 
 import appCss from '../styles.css?url'
@@ -66,6 +68,19 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <ThemeProvider>{children}</ThemeProvider>
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            style: {
+              background: 'var(--color-card)',
+              color: 'var(--color-card-foreground)',
+              border: '1px solid var(--color-border)',
+              fontSize: '13px',
+            },
+            success: { iconTheme: { primary: 'var(--color-success)', secondary: 'var(--color-success-foreground)' } },
+            error: { iconTheme: { primary: 'var(--color-destructive)', secondary: 'var(--color-destructive-foreground)' } },
+          }}
+        />
         <TanStackDevtools
           config={{
             position: 'bottom-right',
