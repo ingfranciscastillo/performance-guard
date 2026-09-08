@@ -38,7 +38,7 @@ export function MetricCard({
             className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
               status === "fail"
                 ? "bg-destructive/15 text-destructive"
-                : "bg-primary/15 text-primary"
+                : "bg-success/15 text-success"
             }`}
           >
             budget {formatMetric(metric, budget)}
@@ -55,7 +55,7 @@ export function MetricCard({
               d.diff === 0
                 ? "text-muted-foreground"
                 : d.better
-                  ? "text-primary"
+                  ? "text-success"
                   : "text-destructive"
             }`}
           >

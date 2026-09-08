@@ -73,7 +73,7 @@ function Hero() {
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link to="/login">
               <Button size="lg">
-                Connect a repo <ArrowRight className="ml-1 h-4 w-4" />
+                Connect a repo <ArrowRight className="ml-1 h-4 w-4 transition-transform duration-150 ease-out group-hover:translate-x-1" />
               </Button>
             </Link>
             <Link to="/dashboard">
@@ -243,7 +243,7 @@ function DashboardPreview() {
             ))}
           </ul>
           <div className="mt-8 flex gap-3">
-            <Link to="/dashboard"><Button>Open demo dashboard <ArrowRight className="ml-1 h-4 w-4" /></Button></Link>
+            <Link to="/dashboard"><Button>Open demo dashboard <ArrowRight className="ml-1 h-4 w-4 transition-transform duration-150 ease-out group-hover:translate-x-1" /></Button></Link>
             <Link to="/pricing"><Button variant="outline">See pricing</Button></Link>
           </div>
         </Reveal>
@@ -260,7 +260,7 @@ function DashboardPreview() {
               {points.map((p, i) => (
                 <div
                   key={i}
-                  className={`flex-1 rounded-sm ${p.pct < 50 ? "bg-destructive/60" : "bg-primary/70"}`}
+                  className={`flex-1 rounded-sm ${p.pct < 50 ? "bg-destructive/60" : "bg-success/70"}`}
                   style={{ height: `${p.pct}%` }}
                 />
               ))}
@@ -368,7 +368,7 @@ function FinalCta() {
             Install Budgetly in 5 minutes. Free for the first 10 repos, forever.
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
-            <Link to="/login"><Button size="lg">Connect GitHub <ArrowRight className="ml-1 h-4 w-4" /></Button></Link>
+            <Link to="/login"><Button size="lg">Connect GitHub <ArrowRight className="ml-1 h-4 w-4 transition-transform duration-150 ease-out group-hover:translate-x-1" /></Button></Link>
             <Link to="/dashboard"><Button size="lg" variant="outline">Browse demo</Button></Link>
           </div>
         </Card>
