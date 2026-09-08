@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Logo } from "./logo";
 import { ThemeToggle } from "./theme-toggle";
 
+const navLink =
+	"relative inline-block w-fit after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:origin-left after:scale-x-0 after:bg-foreground after:transition-transform after:duration-200 after:ease-out hover:text-foreground hover:after:scale-x-100";
+
 export function MarketingShell({ children }: { children: ReactNode }) {
 	return (
 		<div className="flex min-h-screen flex-col bg-background text-foreground">
@@ -13,16 +16,16 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 						<Logo />
 					</Link>
 					<nav className="ml-10 hidden items-center gap-7 text-sm text-muted-foreground md:flex">
-						<a href="#features" className="hover:text-foreground">
+						<a href="#features" className={navLink}>
 							Features
 						</a>
-						<a href="#how" className="hover:text-foreground">
+						<a href="#how" className={navLink}>
 							How it works
 						</a>
-						<Link to="/pricing" className="hover:text-foreground">
+						<Link to="/pricing" className={navLink}>
 							Pricing
 						</Link>
-						<a href="#faq" className="hover:text-foreground">
+						<a href="#faq" className={navLink}>
 							FAQ
 						</a>
 					</nav>
@@ -59,22 +62,16 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 							<div className="text-xs uppercase tracking-wider text-muted-foreground">
 								Product
 							</div>
-							<div className="mt-3 flex flex-col gap-2">
-								<a
-									href="#features"
-									className="text-foreground/80 hover:text-foreground"
-								>
+							<div className="mt-3 flex flex-col items-start gap-2">
+								<a href="#features" className={`${navLink} text-foreground/80`}>
 									Features
 								</a>
-								<Link
-									to="/pricing"
-									className="text-foreground/80 hover:text-foreground"
-								>
+								<Link to="/pricing" className={`${navLink} text-foreground/80`}>
 									Pricing
 								</Link>
 								<Link
 									to="/dashboard"
-									className="text-foreground/80 hover:text-foreground"
+									className={`${navLink} text-foreground/80`}
 								>
 									Live demo
 								</Link>
@@ -84,17 +81,11 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 							<div className="text-xs uppercase tracking-wider text-muted-foreground">
 								Company
 							</div>
-							<div className="mt-3 flex flex-col gap-2">
-								<a
-									href="#"
-									className="text-foreground/80 hover:text-foreground"
-								>
+							<div className="mt-3 flex flex-col items-start gap-2">
+								<a href="#" className={`${navLink} text-foreground/80`}>
 									Status
 								</a>
-								<a
-									href="#"
-									className="text-foreground/80 hover:text-foreground"
-								>
+								<a href="#" className={`${navLink} text-foreground/80`}>
 									Docs
 								</a>
 							</div>
@@ -103,17 +94,11 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 							<div className="text-xs uppercase tracking-wider text-muted-foreground">
 								Legal
 							</div>
-							<div className="mt-3 flex flex-col gap-2">
-								<a
-									href="#"
-									className="text-foreground/80 hover:text-foreground"
-								>
+							<div className="mt-3 flex flex-col items-start gap-2">
+								<a href="#" className={`${navLink} text-foreground/80`}>
 									Privacy
 								</a>
-								<a
-									href="#"
-									className="text-foreground/80 hover:text-foreground"
-								>
+								<a href="#" className={`${navLink} text-foreground/80`}>
 									Terms
 								</a>
 							</div>

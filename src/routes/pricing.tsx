@@ -86,7 +86,7 @@ function Pricing() {
 					{plans.map((p) => (
 						<Card
 							key={p.name}
-							className={`p-7 ${p.popular ? "border-brand" : ""}`}
+							className={`p-7 transition-colors duration-200 ${p.popular ? "border-brand" : "hover:border-foreground/30"}`}
 						>
 							<div className="flex items-center justify-between">
 								<h3 className="font-bold">{p.name}</h3>

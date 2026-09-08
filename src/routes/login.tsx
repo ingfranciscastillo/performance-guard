@@ -140,6 +140,10 @@ function TestimonialCarousel() {
 	const [index, setIndex] = useState(0);
 	const reduce = useReducedMotion();
 
+	// `index` is intentionally a dependency: restarts the 6s countdown whenever
+	// the slide changes (auto or manual) so a manual click isn't overridden by
+	// a stale timer a moment later.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: see comment above
 	useEffect(() => {
 		if (reduce) return;
 		const id = setInterval(() => {
@@ -184,8 +188,10 @@ function TestimonialCarousel() {
 						onClick={() => setIndex(i)}
 						aria-label={`Show testimonial from ${testimonial.name}`}
 						aria-current={i === index}
-						className={`h-1.5 rounded-full transition-all ${
-							i === index ? "w-6 bg-brand" : "w-1.5 bg-foreground/20"
+						className={`h-1.5 rounded-full transition-all duration-200 ${
+							i === index
+								? "w-6 bg-brand"
+								: "w-1.5 bg-foreground/20 hover:bg-foreground/40"
 						}`}
 					/>
 				))}

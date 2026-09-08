@@ -11,6 +11,8 @@ import {
 	StackIcon,
 } from "@phosphor-icons/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { animate, motion, useInView, useReducedMotion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
 import { MarketingShell } from "@/components/marketing-shell";
 import { MetricCard } from "@/components/metric-card";
 import { Reveal } from "@/components/reveal";
@@ -63,24 +65,47 @@ function Landing() {
 	);
 }
 
+const heroContainer = {
+	hidden: {},
+	show: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
+};
+
 function Hero() {
 	const previewPr = PRS.find((p) => p.status === "failing") ?? PRS[0];
 	const previewRepo = getRepo(previewPr.repoId)!;
 	const previewMetrics: MetricKey[] = ["PERF", "LCP", "INP", "CLS"];
+	const reduce = useReducedMotion();
+	const heroItem = {
+		hidden: reduce ? {} : { opacity: 0, y: 14 },
+		show: {
+			opacity: 1,
+			y: 0,
+			transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] as const },
+		},
+	};
 
 	return (
 		<section className="border-b border-border">
 			<div className="mx-auto grid max-w-6xl items-center gap-12 px-5 pb-20 pt-20 lg:grid-cols-[1.05fr_1fr] lg:gap-10 lg:pt-24">
-				<div>
-					<h1 className="text-4xl font-black leading-[1.05] tracking-tighter sm:text-5xl lg:text-6xl">
+				<motion.div initial="hidden" animate="show" variants={heroContainer}>
+					<motion.h1
+						variants={heroItem}
+						className="text-4xl font-black leading-[1.05] tracking-tighter sm:text-5xl lg:text-6xl"
+					>
 						Stop shipping performance{" "}
 						<span className="text-brand">regressions.</span>
-					</h1>
-					<p className="mt-5 max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg">
+					</motion.h1>
+					<motion.p
+						variants={heroItem}
+						className="mt-5 max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg"
+					>
 						Budgetly runs Lighthouse on every pull request, diffs it against
 						your baseline, and blocks merges that break Core Web Vitals.
-					</p>
-					<div className="mt-8 flex flex-wrap items-center gap-3">
+					</motion.p>
+					<motion.div
+						variants={heroItem}
+						className="mt-8 flex flex-wrap items-center gap-3"
+					>
 						<Link to="/login">
 							<Button
 								size="lg"
@@ -95,8 +120,8 @@ function Hero() {
 								View live demo
 							</Button>
 						</Link>
-					</div>
-				</div>
+					</motion.div>
+				</motion.div>
 
 				<Reveal delay={0.1}>
 					<div className="border border-border p-4 sm:p-5">
@@ -237,7 +262,7 @@ function Features() {
 				</Reveal>
 				<div className="mt-12 grid gap-4 lg:grid-cols-2">
 					<Reveal>
-						<div className="flex h-full flex-col border border-border p-6">
+						<div className="flex h-full flex-col border border-border p-6 transition-colors duration-200 hover:border-foreground/25">
 							<h3 className="font-bold">Lighthouse CI built-in</h3>
 							<p className="mt-1.5 max-w-sm text-sm leading-relaxed text-muted-foreground">
 								Mobile and desktop runs on every commit, with stable medians
@@ -268,7 +293,7 @@ function Features() {
 						</div>
 					</Reveal>
 					<Reveal delay={0.06}>
-						<div className="flex h-full flex-col border border-border p-6">
+						<div className="flex h-full flex-col border border-border p-6 transition-colors duration-200 hover:border-foreground/25">
 							<h3 className="font-bold">Inline PR comments</h3>
 							<p className="mt-1.5 max-w-sm text-sm leading-relaxed text-muted-foreground">
 								Per-metric diffs vs. main land directly in the PR, before a
@@ -303,7 +328,10 @@ function Features() {
 				<Reveal delay={0.1}>
 					<div className="mt-4 grid divide-y divide-border border border-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
 						{groupedFeatures.map((f) => (
-							<div key={f.title} className="flex items-start gap-3 p-6">
+							<div
+								key={f.title}
+								className="flex items-start gap-3 p-6 transition-colors duration-200 hover:bg-muted/40"
+							>
 								<f.icon className="mt-0.5 size-4 shrink-0 text-primary" />
 								<div>
 									<h3 className="font-bold">{f.title}</h3>
@@ -320,7 +348,31 @@ function Features() {
 	);
 }
 
+function AnimatedNumber({ value }: { value: number }) {
+	const ref = useRef<HTMLSpanElement>(null);
+	const inView = useInView(ref, { once: true, amount: 0.6 });
+	const reduce = useReducedMotion();
+	const [display, setDisplay] = useState(reduce ? value : 0);
+
+	useEffect(() => {
+		if (!inView) return;
+		if (reduce) {
+			setDisplay(value);
+			return;
+		}
+		const controls = animate(0, value, {
+			duration: 0.8,
+			ease: [0.16, 1, 0.3, 1],
+			onUpdate: (v) => setDisplay(Math.round(v)),
+		});
+		return () => controls.stop();
+	}, [inView, reduce, value]);
+
+	return <span ref={ref}>{display}</span>;
+}
+
 function DashboardPreview() {
+	const reduce = useReducedMotion();
 	const points = [
 		{ pct: 30 },
 		{ pct: 42 },
@@ -397,7 +449,7 @@ function DashboardPreview() {
 									acme/storefront, last 30 days
 								</div>
 								<div className="mt-1 font-mono text-3xl font-semibold">
-									92
+									<AnimatedNumber value={92} />
 									<span className="text-base text-muted-foreground">/100</span>
 								</div>
 							</div>
@@ -405,10 +457,18 @@ function DashboardPreview() {
 						</div>
 						<div className="mt-6 flex h-40 items-end gap-1">
 							{points.map((p, i) => (
-								<div
+								<motion.div
 									key={i}
+									initial={reduce ? false : { scaleY: 0 }}
+									whileInView={{ scaleY: 1 }}
+									viewport={{ once: true, amount: 0.6 }}
+									transition={{
+										duration: 0.4,
+										delay: Math.min(i * 0.012, 0.3),
+										ease: [0.16, 1, 0.3, 1],
+									}}
+									style={{ height: `${p.pct}%`, transformOrigin: "bottom" }}
 									className={`flex-1 ${p.pct < 50 ? "bg-destructive/60" : "bg-success/70"}`}
-									style={{ height: `${p.pct}%` }}
 								/>
 							))}
 						</div>
@@ -476,8 +536,8 @@ function PricingPreview() {
 					{plans.map((p, i) => (
 						<Reveal key={p.name} delay={i * 0.06}>
 							<Card
-								className={`h-full rounded-md p-7 ${
-									p.popular ? "border-brand" : ""
+								className={`h-full rounded-md p-7 transition-colors duration-200 ${
+									p.popular ? "border-brand" : "hover:border-foreground/30"
 								}`}
 							>
 								<div className="flex items-center justify-between">
