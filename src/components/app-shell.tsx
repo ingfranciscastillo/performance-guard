@@ -11,7 +11,7 @@ import {
   SquaresFour,
   Users,
 } from "@phosphor-icons/react"
-import { useEffect, type ComponentType, type ReactNode } from "react"
+import { type ComponentType, type ReactNode } from "react"
 import { Logo } from "./logo"
 import { ThemeToggle } from "./theme-toggle"
 import { Button } from "@/components/ui/button"
@@ -70,11 +70,7 @@ function WorkspaceSwitcher() {
 export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const navigate = useNavigate()
-  const { data: session, isPending } = authClient.useSession()
-
-  useEffect(() => {
-    if (!isPending && !session) navigate({ to: "/login" })
-  }, [isPending, session, navigate])
+  const { data: session } = authClient.useSession()
 
   const initial = session?.user.name?.charAt(0).toUpperCase() ?? "U"
 
