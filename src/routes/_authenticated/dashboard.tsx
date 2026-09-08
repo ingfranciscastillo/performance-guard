@@ -1,11 +1,11 @@
 import {
-	ArrowRight,
-	Bell,
-	GitPullRequest,
-	ShieldCheck,
-	ShieldWarning,
-	TrendDown,
-	TrendUp,
+	ArrowRightIcon,
+	BellIcon,
+	GitPullRequestIcon,
+	ShieldCheckIcon,
+	ShieldWarningIcon,
+	TrendDownIcon,
+	TrendUpIcon,
 } from "@phosphor-icons/react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
@@ -32,26 +32,26 @@ function Dashboard() {
 		{
 			label: "Repositories",
 			value: REPOS.length,
-			icon: ShieldCheck,
+			icon: ShieldCheckIcon,
 			trend: "+1 this week",
 		},
 		{
 			label: "Open PRs",
 			value: PRS.length,
-			icon: GitPullRequest,
+			icon: GitPullRequestIcon,
 			trend: "3 new today",
 		},
 		{
 			label: "Failing budgets",
 			value: PRS.filter((p) => p.status === "failing").length,
-			icon: ShieldWarning,
+			icon: ShieldWarningIcon,
 			trend: "down from 8",
 			trendDown: true,
 		},
 		{
 			label: "Active alerts",
 			value: ALERTS.filter((a) => a.level !== "info").length,
-			icon: Bell,
+			icon: BellIcon,
 			trend: "2 critical",
 		},
 	];
@@ -73,9 +73,9 @@ function Dashboard() {
 							className={`mt-1 text-xs flex items-center gap-1 ${s.trendDown ? "text-success" : "text-muted-foreground"}`}
 						>
 							{s.trendDown ? (
-								<TrendDown className="h-3 w-3" />
+								<TrendDownIcon className="h-3 w-3" />
 							) : (
-								<TrendUp className="h-3 w-3" />
+								<TrendUpIcon className="h-3 w-3" />
 							)}
 							{s.trend}
 						</div>
@@ -214,7 +214,7 @@ function Dashboard() {
 											{r.failingPrs ? `${r.failingPrs} failing` : "all green"}
 										</div>
 									</div>
-									<ArrowRight className="h-4 w-4 text-muted-foreground" />
+									<ArrowRightIcon className="h-4 w-4 text-muted-foreground" />
 								</Link>
 							</li>
 						))}

@@ -159,11 +159,11 @@ function Login() {
 							className="mt-10 text-xs text-muted-foreground"
 						>
 							By continuing you agree to our{" "}
-							<a href="#" className={linkUnderline}>
+							<a href="#terms" className={linkUnderline}>
 								Terms
 							</a>{" "}
 							and{" "}
-							<a href="#" className={linkUnderline}>
+							<a href="#privacy" className={linkUnderline}>
 								Privacy Policy
 							</a>
 							.

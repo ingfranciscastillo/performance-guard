@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getRepo, type MetricKey, PRS } from "@/lib/mock-data";
+import { getRepo, type MetricKey, PRS, REPOS } from "@/lib/mock-data";
 import { EASE_OUT, staggerContainer, staggerItem } from "@/lib/motion";
 
 export const Route = createFileRoute("/")({
@@ -68,7 +68,7 @@ function Landing() {
 
 function Hero() {
 	const previewPr = PRS.find((p) => p.status === "failing") ?? PRS[0];
-	const previewRepo = getRepo(previewPr.repoId)!;
+	const previewRepo = getRepo(previewPr.repoId) ?? REPOS[0];
 	const previewMetrics: MetricKey[] = ["PERF", "LCP", "INP", "CLS"];
 	const reduce = useReducedMotion();
 	const item = staggerItem(reduce);
@@ -158,6 +158,7 @@ function LogoStrip() {
 				<div className="animate-marquee flex w-max items-center gap-16 group-hover:paused motion-reduce:animate-none">
 					{track.map((slug, i) => (
 						<img
+							// biome-ignore lint/suspicious/noArrayIndexKey: static marquee, logos repeated for the loop
 							key={`${slug}-${i}`}
 							src={`https://cdn.simpleicons.org/${slug}`}
 							alt={slug}
@@ -447,6 +448,7 @@ function DashboardPreview() {
 						<div className="mt-6 flex h-40 items-end gap-1">
 							{points.map((p, i) => (
 								<motion.div
+									// biome-ignore lint/suspicious/noArrayIndexKey: static mock series, never reordered
 									key={i}
 									initial={reduce ? false : { scaleY: 0 }}
 									whileInView={{ scaleY: 1 }}
@@ -605,8 +607,8 @@ function Faq() {
 			</Reveal>
 			<Reveal delay={0.08}>
 				<Accordion type="single" collapsible className="mt-10">
-					{items.map((it, i) => (
-						<AccordionItem key={i} value={`i-${i}`}>
+					{items.map((it) => (
+						<AccordionItem key={it.q} value={it.q}>
 							<AccordionTrigger className="text-left">{it.q}</AccordionTrigger>
 							<AccordionContent className="text-muted-foreground">
 								{it.a}

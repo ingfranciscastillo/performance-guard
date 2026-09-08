@@ -11,7 +11,7 @@ import {
 	Users,
 } from "@phosphor-icons/react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { type ComponentType, type ReactNode } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
@@ -36,7 +36,7 @@ function NavList({ pathname }: { pathname: string }) {
 		<nav className="flex-1 space-y-0.5 px-2">
 			{nav.map((item) => {
 				const active =
-					pathname === item.to || pathname.startsWith(item.to + "/");
+					pathname === item.to || pathname.startsWith(`${item.to}/`);
 				const Icon = item.icon;
 				return (
 					<Link
@@ -65,7 +65,10 @@ function NavList({ pathname }: { pathname: string }) {
 
 function WorkspaceSwitcher() {
 	return (
-		<button className="flex w-full items-center gap-2 rounded-md border border-border bg-background/60 px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+		<button
+			type="button"
+			className="flex w-full items-center gap-2 rounded-md border border-border bg-background/60 px-2 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+		>
 			<span className="grid size-5 shrink-0 place-items-center rounded-sm bg-primary/15 text-[10px] font-semibold text-primary">
 				A
 			</span>
@@ -102,6 +105,7 @@ export function AppShell({
 				<NavList pathname={pathname} />
 				<div className="border-t border-border p-3">
 					<button
+						type="button"
 						onClick={() => {
 							void authClient.signOut().then(() => navigate({ to: "/login" }));
 						}}

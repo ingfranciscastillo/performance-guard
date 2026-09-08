@@ -1,8 +1,8 @@
 import {
-	DiscordLogo,
-	EnvelopeSimple,
-	GithubLogo,
-	SlackLogo,
+	DiscordLogoIcon,
+	EnvelopeSimpleIcon,
+	GithubLogoIcon,
+	SlackLogoIcon,
 } from "@phosphor-icons/react";
 import { createFileRoute } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
@@ -64,25 +64,25 @@ function Settings() {
 						{
 							name: "GitHub",
 							desc: "Connected as acme org, 4 repos",
-							icon: GithubLogo,
+							icon: GithubLogoIcon,
 							connected: true,
 						},
 						{
 							name: "Slack",
 							desc: "#perf-alerts, 12 routes",
-							icon: SlackLogo,
+							icon: SlackLogoIcon,
 							connected: true,
 						},
 						{
 							name: "Discord",
 							desc: "Not connected",
-							icon: DiscordLogo,
+							icon: DiscordLogoIcon,
 							connected: false,
 						},
 						{
 							name: "Email digest",
 							desc: "Weekly to engineering@acme.dev",
-							icon: EnvelopeSimple,
+							icon: EnvelopeSimpleIcon,
 							connected: true,
 						},
 					].map((i) => (

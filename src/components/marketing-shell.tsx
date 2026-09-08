@@ -86,10 +86,16 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 								Company
 							</div>
 							<div className="mt-3 flex flex-col items-start gap-2">
-								<a href="#" className={`${linkUnderline} text-foreground/80`}>
+								<a
+									href="#status"
+									className={`${linkUnderline} text-foreground/80`}
+								>
 									Status
 								</a>
-								<a href="#" className={`${linkUnderline} text-foreground/80`}>
+								<a
+									href="#docs"
+									className={`${linkUnderline} text-foreground/80`}
+								>
 									Docs
 								</a>
 							</div>
@@ -99,10 +105,16 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 								Legal
 							</div>
 							<div className="mt-3 flex flex-col items-start gap-2">
-								<a href="#" className={`${linkUnderline} text-foreground/80`}>
+								<a
+									href="#privacy"
+									className={`${linkUnderline} text-foreground/80`}
+								>
 									Privacy
 								</a>
-								<a href="#" className={`${linkUnderline} text-foreground/80`}>
+								<a
+									href="#terms"
+									className={`${linkUnderline} text-foreground/80`}
+								>
 									Terms
 								</a>
 							</div>
