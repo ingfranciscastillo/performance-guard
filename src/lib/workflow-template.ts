@@ -20,22 +20,49 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      # TODO: this project's real install/build/serve steps. The Lighthouse
-      # step below needs something listening on http://localhost:3000 (or
-      # change the URL there too) before it runs.
+      - name: Detect package manager
+        id: pm
+        run: |
+          if [ -f pnpm-lock.yaml ]; then echo "manager=pnpm" >> "$GITHUB_OUTPUT"
+          elif [ -f yarn.lock ]; then echo "manager=yarn" >> "$GITHUB_OUTPUT"
+          else echo "manager=npm" >> "$GITHUB_OUTPUT"
+          fi
+
+      # TODO: build/start scripts assume "build" and "start" npm scripts exist
+      # (package.json's "scripts" field) and that the app serves on port 3000
+      # once started. Adjust the port here and in the Lighthouse step below
+      # if this project uses a different one.
       - name: Install dependencies
-        run: npm ci
+        run: |
+          case "\${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm install --frozen-lockfile ;;
+            yarn) yarn install --frozen-lockfile ;;
+            npm) npm ci ;;
+          esac
 
       - name: Build
-        run: npm run build
+        run: |
+          case "\${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm run build ;;
+            yarn) yarn build ;;
+            npm) npm run build ;;
+          esac
 
       - name: Start server in background
         run: |
-          npm run start &
+          case "\${{ steps.pm.outputs.manager }}" in
+            pnpm) pnpm run start & ;;
+            yarn) yarn start & ;;
+            npm) npm run start & ;;
+          esac
           npx wait-on http://localhost:3000
 
       - name: Run Lighthouse
@@ -91,6 +118,8 @@ jobs:
 # 1. Replace YOUR-BUDGETLY-DOMAIN above with where Budgetly is deployed.
 # 2. Add a repo secret named BUDGETLY_TOKEN (Settings > Secrets and
 #    variables > Actions) with the token from Budgetly's Settings page.
-# 3. Fix the install/build/serve steps above for how this project actually runs.
+# 3. Package manager (pnpm/yarn/npm) is auto-detected from the lockfile.
+#    Adjust the "build"/"start" script names or the port (3000) above if
+#    this project's package.json scripts or dev server differ.
 `;
 }
