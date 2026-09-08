@@ -48,9 +48,11 @@ export const auth = betterAuth({
 				// an organization. Without this, a fresh sign-up has none and the
 				// whole app renders empty. Give them a personal workspace they can
 				// rename later from Settings -> Organization.
-				after: async (user, context) => {
+				after: async (user) => {
+					// userId can't be combined with session headers (better-auth
+					// treats that as ambiguous "who is this for" and rejects it) —
+					// this call is impersonation-style, not tied to the request.
 					await auth.api.createOrganization({
-						headers: context?.headers,
 						body: {
 							name: `${user.name}'s Workspace`,
 							slug: `${slugify(user.name || user.email.split("@")[0])}-${user.id.slice(0, 6)}`,

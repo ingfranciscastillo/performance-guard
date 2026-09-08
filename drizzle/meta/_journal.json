@@ -15,6 +15,13 @@
       "when": 1788898864092,
       "tag": "0001_clammy_ulik",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788899950659,
+      "tag": "0002_tidy_excalibur",
+      "breakpoints": true
     }
   ]
 }
