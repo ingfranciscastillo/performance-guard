@@ -1,3 +1,4 @@
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import {
 	Area,
@@ -11,20 +12,18 @@ import { AppShell } from "@/components/app-shell";
 import { StatusBadge } from "@/components/status-badge";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-	type Budget,
-	formatMetric,
-	getRepo,
-	METRIC_META,
-	PRS,
-	timeSeries,
-} from "@/lib/mock-data";
+import { timeAgo } from "@/lib/format";
+import { formatMetric, METRIC_META } from "@/lib/mock-data";
+import { repoDetailQueryOptions } from "@/lib/repo-detail.queries";
 
 export const Route = createFileRoute("/_authenticated/repositories/$repoId")({
-	loader: ({ params }) => {
-		const repo = getRepo(params.repoId);
-		if (!repo) throw notFound();
-		return { repo };
+	// loader must come before head — see pulls/$prId.tsx for why.
+	loader: async ({ context, params }) => {
+		const data = await context.queryClient.ensureQueryData(
+			repoDetailQueryOptions(params.repoId),
+		);
+		if (!data) throw notFound();
+		return data;
 	},
 	head: ({ params }) => ({ meta: [{ title: `${params.repoId}: Budgetly` }] }),
 	notFoundComponent: () => (
@@ -36,9 +35,11 @@ export const Route = createFileRoute("/_authenticated/repositories/$repoId")({
 });
 
 function RepoDetail() {
-	const { repo } = Route.useLoaderData();
-	const prs = PRS.filter((p) => p.repoId === repo.id);
-	const series = timeSeries(repo.id, 30);
+	const { repoId } = Route.useParams();
+	const { data: repo } = useSuspenseQuery(repoDetailQueryOptions(repoId));
+	// The loader already redirects to notFoundComponent when null; this just
+	// narrows the type for TS since this query call is independent of it.
+	if (!repo) throw notFound();
 
 	return (
 		<AppShell>
@@ -56,7 +57,7 @@ function RepoDetail() {
 					<p className="text-xs text-muted-foreground">
 						Default branch{" "}
 						<span className="font-mono">{repo.defaultBranch}</span> · last run{" "}
-						{repo.lastRun}
+						{timeAgo(repo.lastRunAt)}
 					</p>
 				</div>
 				<div className="flex items-center gap-3">
@@ -65,8 +66,14 @@ function RepoDetail() {
 							Health
 						</div>
 						<div className="font-mono text-2xl font-semibold">
-							{repo.health}
-							<span className="text-sm text-muted-foreground">/100</span>
+							{repo.avgPerf == null ? (
+								<span className="text-muted-foreground">—</span>
+							) : (
+								<>
+									{repo.avgPerf}
+									<span className="text-sm text-muted-foreground">/100</span>
+								</>
+							)}
 						</div>
 					</div>
 				</div>
@@ -82,226 +89,244 @@ function RepoDetail() {
 				</TabsList>
 
 				<TabsContent value="overview" className="mt-6 space-y-4">
-					<Card className="p-5">
-						<h2 className="font-semibold">Performance Score</h2>
-						<div className="mt-4 h-56">
-							<ResponsiveContainer>
-								<AreaChart
-									data={series}
-									margin={{ left: -10, right: 8, top: 8 }}
-								>
-									<defs>
-										<linearGradient id="r1" x1="0" y1="0" x2="0" y2="1">
-											<stop
-												offset="0%"
-												stopColor="var(--color-success)"
-												stopOpacity={0.5}
-											/>
-											<stop
-												offset="100%"
-												stopColor="var(--color-success)"
-												stopOpacity={0}
-											/>
-										</linearGradient>
-									</defs>
-									<XAxis
-										dataKey="date"
-										tick={{ fontSize: 10 }}
-										stroke="var(--color-muted-foreground)"
-									/>
-									<YAxis
-										domain={[40, 100]}
-										tick={{ fontSize: 10 }}
-										stroke="var(--color-muted-foreground)"
-									/>
-									<Tooltip
-										contentStyle={{
-											background: "var(--color-card)",
-											border: "1px solid var(--color-border)",
-											fontSize: 12,
-										}}
-									/>
-									<Area
-										dataKey="perf"
-										stroke="var(--color-success)"
-										strokeWidth={2}
-										fill="url(#r1)"
-									/>
-								</AreaChart>
-							</ResponsiveContainer>
-						</div>
-					</Card>
-					<div className="grid md:grid-cols-2 gap-4">
-						<Card className="p-5">
-							<h2 className="font-semibold">LCP trend</h2>
-							<div className="mt-4 h-40">
-								<ResponsiveContainer>
-									<AreaChart
-										data={series}
-										margin={{ left: -10, right: 8, top: 8 }}
-									>
-										<XAxis
-											dataKey="date"
-											tick={{ fontSize: 10 }}
-											stroke="var(--color-muted-foreground)"
-										/>
-										<YAxis
-											tick={{ fontSize: 10 }}
-											stroke="var(--color-muted-foreground)"
-										/>
-										<Tooltip
-											contentStyle={{
-												background: "var(--color-card)",
-												border: "1px solid var(--color-border)",
-												fontSize: 12,
-											}}
-										/>
-										<Area
-											dataKey="lcp"
-											stroke="var(--color-chart-3)"
-											fill="var(--color-chart-3)"
-											fillOpacity={0.18}
-											strokeWidth={2}
-										/>
-									</AreaChart>
-								</ResponsiveContainer>
-							</div>
+					{repo.series.length === 0 ? (
+						<Card className="p-10 text-center">
+							<p className="text-sm text-muted-foreground">
+								No performance runs recorded yet. Charts fill in once PRs are
+								audited.
+							</p>
 						</Card>
-						<Card className="p-5">
-							<h2 className="font-semibold">INP trend</h2>
-							<div className="mt-4 h-40">
-								<ResponsiveContainer>
-									<AreaChart
-										data={series}
-										margin={{ left: -10, right: 8, top: 8 }}
-									>
-										<XAxis
-											dataKey="date"
-											tick={{ fontSize: 10 }}
-											stroke="var(--color-muted-foreground)"
-										/>
-										<YAxis
-											tick={{ fontSize: 10 }}
-											stroke="var(--color-muted-foreground)"
-										/>
-										<Tooltip
-											contentStyle={{
-												background: "var(--color-card)",
-												border: "1px solid var(--color-border)",
-												fontSize: 12,
-											}}
-										/>
-										<Area
-											dataKey="inp"
-											stroke="var(--color-chart-4)"
-											fill="var(--color-chart-4)"
-											fillOpacity={0.18}
-											strokeWidth={2}
-										/>
-									</AreaChart>
-								</ResponsiveContainer>
+					) : (
+						<>
+							<Card className="p-5">
+								<h2 className="font-semibold">Performance Score</h2>
+								<div className="mt-4 h-56">
+									<ResponsiveContainer>
+										<AreaChart
+											data={repo.series}
+											margin={{ left: -10, right: 8, top: 8 }}
+										>
+											<defs>
+												<linearGradient id="r1" x1="0" y1="0" x2="0" y2="1">
+													<stop
+														offset="0%"
+														stopColor="var(--color-success)"
+														stopOpacity={0.5}
+													/>
+													<stop
+														offset="100%"
+														stopColor="var(--color-success)"
+														stopOpacity={0}
+													/>
+												</linearGradient>
+											</defs>
+											<XAxis
+												dataKey="date"
+												tick={{ fontSize: 10 }}
+												stroke="var(--color-muted-foreground)"
+											/>
+											<YAxis
+												domain={[0, 100]}
+												tick={{ fontSize: 10 }}
+												stroke="var(--color-muted-foreground)"
+											/>
+											<Tooltip
+												contentStyle={{
+													background: "var(--color-card)",
+													border: "1px solid var(--color-border)",
+													fontSize: 12,
+												}}
+											/>
+											<Area
+												dataKey="perf"
+												stroke="var(--color-success)"
+												strokeWidth={2}
+												fill="url(#r1)"
+												connectNulls
+											/>
+										</AreaChart>
+									</ResponsiveContainer>
+								</div>
+							</Card>
+							<div className="grid md:grid-cols-2 gap-4">
+								<Card className="p-5">
+									<h2 className="font-semibold">LCP trend</h2>
+									<div className="mt-4 h-40">
+										<ResponsiveContainer>
+											<AreaChart
+												data={repo.series}
+												margin={{ left: -10, right: 8, top: 8 }}
+											>
+												<XAxis
+													dataKey="date"
+													tick={{ fontSize: 10 }}
+													stroke="var(--color-muted-foreground)"
+												/>
+												<YAxis
+													tick={{ fontSize: 10 }}
+													stroke="var(--color-muted-foreground)"
+												/>
+												<Tooltip
+													contentStyle={{
+														background: "var(--color-card)",
+														border: "1px solid var(--color-border)",
+														fontSize: 12,
+													}}
+												/>
+												<Area
+													dataKey="lcp"
+													stroke="var(--color-chart-3)"
+													fill="var(--color-chart-3)"
+													fillOpacity={0.18}
+													strokeWidth={2}
+													connectNulls
+												/>
+											</AreaChart>
+										</ResponsiveContainer>
+									</div>
+								</Card>
+								<Card className="p-5">
+									<h2 className="font-semibold">INP trend</h2>
+									<div className="mt-4 h-40">
+										<ResponsiveContainer>
+											<AreaChart
+												data={repo.series}
+												margin={{ left: -10, right: 8, top: 8 }}
+											>
+												<XAxis
+													dataKey="date"
+													tick={{ fontSize: 10 }}
+													stroke="var(--color-muted-foreground)"
+												/>
+												<YAxis
+													tick={{ fontSize: 10 }}
+													stroke="var(--color-muted-foreground)"
+												/>
+												<Tooltip
+													contentStyle={{
+														background: "var(--color-card)",
+														border: "1px solid var(--color-border)",
+														fontSize: 12,
+													}}
+												/>
+												<Area
+													dataKey="inp"
+													stroke="var(--color-chart-4)"
+													fill="var(--color-chart-4)"
+													fillOpacity={0.18}
+													strokeWidth={2}
+													connectNulls
+												/>
+											</AreaChart>
+										</ResponsiveContainer>
+									</div>
+								</Card>
 							</div>
-						</Card>
-					</div>
+						</>
+					)}
 				</TabsContent>
 
 				<TabsContent value="pulls" className="mt-6">
 					<Card className="p-0 overflow-hidden">
-						<table className="w-full text-sm">
-							<thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
-								<tr>
-									<th className="text-left font-medium px-5 py-3">PR</th>
-									<th className="text-left font-medium px-5 py-3">Title</th>
-									<th className="text-left font-medium px-5 py-3">Author</th>
-									<th className="text-left font-medium px-5 py-3">Status</th>
-								</tr>
-							</thead>
-							<tbody className="divide-y divide-border">
-								{prs.map((p) => (
-									<tr key={p.id} className="hover:bg-muted/30">
-										<td className="px-5 py-3 font-mono">#{p.number}</td>
-										<td className="px-5 py-3">
-											<Link
-												to="/pulls/$prId"
-												params={{ prId: p.id }}
-												className="font-medium hover:text-primary"
-											>
-												{p.title}
-											</Link>
-										</td>
-										<td className="px-5 py-3 text-muted-foreground">
-											{p.author}
-										</td>
-										<td className="px-5 py-3">
-											<StatusBadge status={p.status} />
-										</td>
+						{repo.pulls.length === 0 ? (
+							<p className="px-5 py-10 text-center text-sm text-muted-foreground">
+								No pull requests recorded yet.
+							</p>
+						) : (
+							<table className="w-full text-sm">
+								<thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
+									<tr>
+										<th className="text-left font-medium px-5 py-3">PR</th>
+										<th className="text-left font-medium px-5 py-3">Title</th>
+										<th className="text-left font-medium px-5 py-3">Author</th>
+										<th className="text-left font-medium px-5 py-3">Status</th>
 									</tr>
-								))}
-							</tbody>
-						</table>
+								</thead>
+								<tbody className="divide-y divide-border">
+									{repo.pulls.map((p) => (
+										<tr key={p.id} className="hover:bg-muted/30">
+											<td className="px-5 py-3 font-mono">#{p.number}</td>
+											<td className="px-5 py-3">
+												<Link
+													to="/pulls/$prId"
+													params={{ prId: p.id }}
+													className="font-medium hover:text-primary"
+												>
+													{p.title}
+												</Link>
+											</td>
+											<td className="px-5 py-3 text-muted-foreground">
+												{p.author}
+											</td>
+											<td className="px-5 py-3">
+												<StatusBadge status={p.status} />
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						)}
 					</Card>
 				</TabsContent>
 
 				<TabsContent value="budgets" className="mt-6">
 					<Card className="p-0 overflow-hidden">
-						<table className="w-full text-sm">
-							<thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
-								<tr>
-									<th className="text-left font-medium px-5 py-3">Metric</th>
-									<th className="text-left font-medium px-5 py-3">Limit</th>
-									<th className="text-left font-medium px-5 py-3">Severity</th>
-									<th className="text-left font-medium px-5 py-3">Action</th>
-								</tr>
-							</thead>
-							<tbody className="divide-y divide-border">
-								{(repo.budgets as Budget[]).map((b) => (
-									<tr key={b.metric}>
-										<td className="px-5 py-3">
-											<span className="font-mono font-medium">{b.metric}</span>{" "}
-											<span className="text-xs text-muted-foreground ml-2">
-												{METRIC_META[b.metric].label}
-											</span>
-										</td>
-										<td className="px-5 py-3 font-mono">
-											{formatMetric(b.metric, b.max)}
-										</td>
-										<td className="px-5 py-3">
-											<span
-												className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${b.severity === "fail" ? "bg-destructive/15 text-destructive" : "bg-warning/20 text-warning-foreground"}`}
-											>
-												{b.severity}
-											</span>
-										</td>
-										<td className="px-5 py-3 font-mono text-xs text-muted-foreground">
-											{b.action}
-										</td>
+						{repo.budgets.length === 0 ? (
+							<p className="px-5 py-10 text-center text-sm text-muted-foreground">
+								No budgets configured. Reconnect with a preset or add budgets
+								manually.
+							</p>
+						) : (
+							<table className="w-full text-sm">
+								<thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
+									<tr>
+										<th className="text-left font-medium px-5 py-3">Metric</th>
+										<th className="text-left font-medium px-5 py-3">Limit</th>
+										<th className="text-left font-medium px-5 py-3">
+											Severity
+										</th>
+										<th className="text-left font-medium px-5 py-3">Action</th>
 									</tr>
-								))}
-							</tbody>
-						</table>
+								</thead>
+								<tbody className="divide-y divide-border">
+									{repo.budgets.map((b) => (
+										<tr key={b.metric}>
+											<td className="px-5 py-3">
+												<span className="font-mono font-medium">
+													{b.metric}
+												</span>{" "}
+												<span className="text-xs text-muted-foreground ml-2">
+													{METRIC_META[b.metric].label}
+												</span>
+											</td>
+											<td className="px-5 py-3 font-mono">
+												{formatMetric(b.metric, b.max)}
+											</td>
+											<td className="px-5 py-3">
+												<span
+													className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${b.severity === "fail" ? "bg-destructive/15 text-destructive" : "bg-warning/20 text-warning-foreground"}`}
+												>
+													{b.severity}
+												</span>
+											</td>
+											<td className="px-5 py-3 font-mono text-xs text-muted-foreground">
+												{b.action}
+											</td>
+										</tr>
+									))}
+								</tbody>
+							</table>
+						)}
 					</Card>
 				</TabsContent>
 
 				<TabsContent value="history" className="mt-6">
 					<Card className="p-5">
 						<h2 className="font-semibold">Audit history</h2>
-						<ul className="mt-4 space-y-3 text-sm">
-							{[
-								"Budget LCP changed from 3000ms → 2500ms",
-								"Connected to GitHub App v1.4",
-								"Slack channel #perf-alerts added",
-								"PR #1009 blocked by INP budget",
-								"Baseline rebuilt on main",
-							].map((m, i) => (
-								// biome-ignore lint/suspicious/noArrayIndexKey: static log, index is the display value too
-								<li key={i} className="flex gap-3">
-									<span className="font-mono text-xs text-muted-foreground">
-										{i + 1}d ago
-									</span>
-									<span>{m}</span>
-								</li>
-							))}
-						</ul>
+						<p className="mt-2 text-sm text-muted-foreground">
+							Audit logging isn't wired up yet — this repo has no tracked
+							history events.
+						</p>
 					</Card>
 				</TabsContent>
 
@@ -309,31 +334,9 @@ function RepoDetail() {
 					<Card className="p-5">
 						<h2 className="font-semibold">Repository settings</h2>
 						<p className="text-sm text-muted-foreground mt-1">
-							Branch protection, runner region, and webhook delivery
-							preferences.
+							Branch protection, runner region, and webhook delivery preferences
+							aren't configurable yet.
 						</p>
-						<div className="mt-4 grid sm:grid-cols-2 gap-4 text-sm">
-							<div>
-								<div className="text-xs text-muted-foreground">
-									Runner region
-								</div>
-								<div className="mt-1 font-mono">us-east-1</div>
-							</div>
-							<div>
-								<div className="text-xs text-muted-foreground">
-									Lighthouse passes
-								</div>
-								<div className="mt-1 font-mono">3 (median)</div>
-							</div>
-							<div>
-								<div className="text-xs text-muted-foreground">Form factor</div>
-								<div className="mt-1 font-mono">mobile + desktop</div>
-							</div>
-							<div>
-								<div className="text-xs text-muted-foreground">Throttling</div>
-								<div className="mt-1 font-mono">Slow 4G</div>
-							</div>
-						</div>
 					</Card>
 				</TabsContent>
 			</Tabs>
