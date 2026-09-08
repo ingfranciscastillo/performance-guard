@@ -5,6 +5,13 @@ import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 
+function slugify(input: string) {
+	return input
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/(^-|-$)/g, "");
+}
+
 export const auth = betterAuth({
 	secret: process.env.BETTER_AUTH_SECRET,
 	database: drizzleAdapter(db, {
@@ -34,12 +41,34 @@ export const auth = betterAuth({
 			"/api/auth/sign-up/email": { window: 60, max: 3 },
 		},
 	},
+	databaseHooks: {
+		user: {
+			create: {
+				// Every screen in the product (repos, budgets, team) is scoped to
+				// an organization. Without this, a fresh sign-up has none and the
+				// whole app renders empty. Give them a personal workspace they can
+				// rename later from Settings -> Organization.
+				after: async (user, context) => {
+					await auth.api.createOrganization({
+						headers: context?.headers,
+						body: {
+							name: `${user.name}'s Workspace`,
+							slug: `${slugify(user.name || user.email.split("@")[0])}-${user.id.slice(0, 6)}`,
+							userId: user.id,
+						},
+					});
+				},
+			},
+		},
+	},
 	plugins: [
 		// Default owner/admin/member roles and permissions for now. The product
 		// UI (team.tsx) shows Owner/Admin/Developer/Viewer — that's a separate
 		// custom-role/access-control decision, not made yet. Members keep the
 		// UI label as display text until real permission checks are designed.
-		organization(),
+		organization({
+			allowUserToCreateOrganization: true,
+		}),
 		tanstackStartCookies(),
 	],
 });
