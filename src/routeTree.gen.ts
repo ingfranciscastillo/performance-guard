@@ -20,6 +20,7 @@ import { Route as AuthenticatedTeamRouteImport } from './routes/_authenticated/t
 import { Route as AuthenticatedPullsIndexRouteImport } from './routes/_authenticated/pulls/index'
 import { Route as AuthenticatedPullsPrIdRouteImport } from './routes/_authenticated/pulls/$prId'
 import { Route as AuthenticatedRepositoriesIndexRouteImport } from './routes/_authenticated/repositories/index'
+import { Route as AuthenticatedRepositoriesRepoIdRouteImport } from './routes/_authenticated/repositories/$repoId'
 import { Route as AuthenticatedRepositoriesNewRouteImport } from './routes/_authenticated/repositories/new'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
@@ -78,6 +79,12 @@ const AuthenticatedRepositoriesIndexRoute =
     path: '/repositories/',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedRepositoriesRepoIdRoute =
+  AuthenticatedRepositoriesRepoIdRouteImport.update({
+    id: '/repositories/$repoId',
+    path: '/repositories/$repoId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedRepositoriesNewRoute =
   AuthenticatedRepositoriesNewRouteImport.update({
     id: '/repositories/new',
@@ -99,6 +106,7 @@ export interface FileRoutesByFullPath {
   '/settings': typeof AuthenticatedSettingsRoute
   '/team': typeof AuthenticatedTeamRoute
   '/pulls/$prId': typeof AuthenticatedPullsPrIdRoute
+  '/repositories/$repoId': typeof AuthenticatedRepositoriesRepoIdRoute
   '/repositories/new': typeof AuthenticatedRepositoriesNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/pulls/': typeof AuthenticatedPullsIndexRoute
@@ -113,6 +121,7 @@ export interface FileRoutesByTo {
   '/settings': typeof AuthenticatedSettingsRoute
   '/team': typeof AuthenticatedTeamRoute
   '/pulls/$prId': typeof AuthenticatedPullsPrIdRoute
+  '/repositories/$repoId': typeof AuthenticatedRepositoriesRepoIdRoute
   '/repositories/new': typeof AuthenticatedRepositoriesNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/pulls': typeof AuthenticatedPullsIndexRoute
@@ -129,6 +138,7 @@ export interface FileRoutesById {
   '/_authenticated/settings': typeof AuthenticatedSettingsRoute
   '/_authenticated/team': typeof AuthenticatedTeamRoute
   '/_authenticated/pulls/$prId': typeof AuthenticatedPullsPrIdRoute
+  '/_authenticated/repositories/$repoId': typeof AuthenticatedRepositoriesRepoIdRoute
   '/_authenticated/repositories/new': typeof AuthenticatedRepositoriesNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/_authenticated/pulls/': typeof AuthenticatedPullsIndexRoute
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/team'
     | '/pulls/$prId'
+    | '/repositories/$repoId'
     | '/repositories/new'
     | '/api/auth/$'
     | '/pulls/'
@@ -159,6 +170,7 @@ export interface FileRouteTypes {
     | '/settings'
     | '/team'
     | '/pulls/$prId'
+    | '/repositories/$repoId'
     | '/repositories/new'
     | '/api/auth/$'
     | '/pulls'
@@ -174,6 +186,7 @@ export interface FileRouteTypes {
     | '/_authenticated/settings'
     | '/_authenticated/team'
     | '/_authenticated/pulls/$prId'
+    | '/_authenticated/repositories/$repoId'
     | '/_authenticated/repositories/new'
     | '/api/auth/$'
     | '/_authenticated/pulls/'
@@ -267,6 +280,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRepositoriesIndexRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/repositories/$repoId': {
+      id: '/_authenticated/repositories/$repoId'
+      path: '/repositories/$repoId'
+      fullPath: '/repositories/$repoId'
+      preLoaderRoute: typeof AuthenticatedRepositoriesRepoIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/repositories/new': {
       id: '/_authenticated/repositories/new'
       path: '/repositories/new'
@@ -290,6 +310,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedSettingsRoute: typeof AuthenticatedSettingsRoute
   AuthenticatedTeamRoute: typeof AuthenticatedTeamRoute
   AuthenticatedPullsPrIdRoute: typeof AuthenticatedPullsPrIdRoute
+  AuthenticatedRepositoriesRepoIdRoute: typeof AuthenticatedRepositoriesRepoIdRoute
   AuthenticatedRepositoriesNewRoute: typeof AuthenticatedRepositoriesNewRoute
   AuthenticatedPullsIndexRoute: typeof AuthenticatedPullsIndexRoute
   AuthenticatedRepositoriesIndexRoute: typeof AuthenticatedRepositoriesIndexRoute
@@ -301,6 +322,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedSettingsRoute: AuthenticatedSettingsRoute,
   AuthenticatedTeamRoute: AuthenticatedTeamRoute,
   AuthenticatedPullsPrIdRoute: AuthenticatedPullsPrIdRoute,
+  AuthenticatedRepositoriesRepoIdRoute: AuthenticatedRepositoriesRepoIdRoute,
   AuthenticatedRepositoriesNewRoute: AuthenticatedRepositoriesNewRoute,
   AuthenticatedPullsIndexRoute: AuthenticatedPullsIndexRoute,
   AuthenticatedRepositoriesIndexRoute: AuthenticatedRepositoriesIndexRoute,
