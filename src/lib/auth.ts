@@ -31,9 +31,14 @@ export const auth = betterAuth({
 			// - repo: read PR/commit data, incl. private repos. GitHub has no
 			//   read-only classic scope for private repos, only public_repo vs repo.
 			// - read:org: list an org's repos for the "connect a repository" picker
+			// - workflow: separate from `repo` on purpose — GitHub requires this
+			//   scope specifically to create/update files under
+			//   .github/workflows/*. Without it, writes there 404 (not 403,
+			//   so it looks like a random API bug instead of a missing scope).
+			//   Needed to auto-commit the Budgetly Action on "Connect a repository".
 			// Posting check-runs/PR comments as "Budgetly" (not as the user) needs
 			// a separate GitHub App with installation tokens, not OAuth scopes.
-			scope: ["read:user", "user:email", "repo", "read:org"],
+			scope: ["read:user", "user:email", "repo", "read:org", "workflow"],
 		},
 	},
 	rateLimit: {
