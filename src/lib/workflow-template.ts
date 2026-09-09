@@ -11,13 +11,14 @@ import { WORKFLOW_MANAGED_MARKER } from "@/lib/github";
 function setupAndInstall(manager: PackageManager): string {
 	switch (manager) {
 		case "pnpm":
-			// pnpm/setup installs Node + pnpm in one step and runs `pnpm install`
-			// itself (require-lockfile enforces it behaves like --frozen-lockfile),
-			// so there's no separate "Install dependencies" step to keep in sync.
+			// pnpm/setup installs Node + pnpm and runs `pnpm install` itself, so
+			// there's no separate "Install dependencies" step to keep in sync.
+			// No explicit frozen-lockfile flag needed: pnpm already defaults to
+			// --frozen-lockfile behavior whenever the CI env var is set, which
+			// GitHub Actions always sets.
 			return `      - uses: pnpm/setup@v2
         with:
-          cache: true
-          require-lockfile: true`;
+          cache: true`;
 		case "yarn":
 			return `      - uses: actions/setup-node@v7
         with:
