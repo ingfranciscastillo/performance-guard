@@ -13,6 +13,7 @@ import type {
 	Action,
 	AlertChannel,
 	AlertLevel,
+	AlertRuleKey,
 	MetricKey,
 	PrStatus,
 	Severity,
@@ -138,6 +139,30 @@ export const alerts = pgTable("alerts", {
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+/**
+ * Per-org on/off state for a fixed set of alert rules (see AlertRuleKey).
+ * Absence of a row means "use that rule's default" — rows only exist once an
+ * org has actually flipped a rule away from its default, so a fresh org
+ * doesn't need every rule seeded up front.
+ */
+export const alertRules = pgTable(
+	"alert_rules",
+	{
+		id: id(),
+		organizationId: text("organization_id")
+			.notNull()
+			.references(() => organization.id, { onDelete: "cascade" }),
+		rule: text("rule").notNull().$type<AlertRuleKey>(),
+		enabled: boolean("enabled").notNull(),
+	},
+	(t) => [
+		uniqueIndex("alert_rules_organization_id_rule_unique").on(
+			t.organizationId,
+			t.rule,
+		),
+	],
+);
+
 export const reposRelations = relations(repos, ({ many, one }) => ({
 	organization: one(organization, {
 		fields: [repos.organizationId],
@@ -167,6 +192,13 @@ export const alertsRelations = relations(alerts, ({ one }) => ({
 	repo: one(repos, { fields: [alerts.repoId], references: [repos.id] }),
 }));
 
+export const alertRulesRelations = relations(alertRules, ({ one }) => ({
+	organization: one(organization, {
+		fields: [alertRules.organizationId],
+		references: [organization.id],
+	}),
+}));
+
 export type NewRepo = typeof repos.$inferInsert;
 export type RepoRow = typeof repos.$inferSelect;
 export type NewBudget = typeof budgets.$inferInsert;
@@ -177,3 +209,5 @@ export type NewAlert = typeof alerts.$inferInsert;
 export type AlertRow = typeof alerts.$inferSelect;
 export type NewOrgToken = typeof orgTokens.$inferInsert;
 export type OrgTokenRow = typeof orgTokens.$inferSelect;
+export type NewAlertRule = typeof alertRules.$inferInsert;
+export type AlertRuleRow = typeof alertRules.$inferSelect;

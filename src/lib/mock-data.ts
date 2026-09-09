@@ -93,6 +93,11 @@ export interface PullRequest {
 
 export type AlertChannel = "slack" | "discord" | "email";
 export type AlertLevel = "info" | "warning" | "critical";
+export type AlertRuleKey =
+	| "budget_violation"
+	| "regression_3day"
+	| "score_below_80"
+	| "weekly_digest";
 
 export interface AlertItem {
 	id: string;

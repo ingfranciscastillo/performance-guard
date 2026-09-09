@@ -3,11 +3,18 @@ import {
 	EnvelopeSimpleIcon,
 	SlackLogoIcon,
 } from "@phosphor-icons/react";
-import { useSuspenseQuery } from "@tanstack/react-query";
+import {
+	useMutation,
+	useQueryClient,
+	useSuspenseQuery,
+} from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import toast from "react-hot-toast";
 import { AppShell } from "@/components/app-shell";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { setAlertRuleEnabled } from "@/lib/alert-rules.functions";
+import { alertRulesQueryOptions } from "@/lib/alert-rules.queries";
 import { orgAlertsQueryOptions } from "@/lib/alerts.queries";
 import { timeAgo } from "@/lib/format";
 
@@ -19,13 +26,26 @@ const channelIcon = {
 
 export const Route = createFileRoute("/_authenticated/alerts")({
 	loader: ({ context }) =>
-		context.queryClient.ensureQueryData(orgAlertsQueryOptions()),
+		Promise.all([
+			context.queryClient.ensureQueryData(orgAlertsQueryOptions()),
+			context.queryClient.ensureQueryData(alertRulesQueryOptions()),
+		]),
 	head: () => ({ meta: [{ title: "Alerts: Budgetly" }] }),
 	component: Alerts,
 });
 
 function Alerts() {
 	const { data: alerts } = useSuspenseQuery(orgAlertsQueryOptions());
+	const { data: rules } = useSuspenseQuery(alertRulesQueryOptions());
+	const queryClient = useQueryClient();
+
+	const toggleRule = useMutation({
+		mutationFn: setAlertRuleEnabled,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["alert-rules"] });
+		},
+		onError: () => toast.error("Could not update the rule"),
+	});
 
 	return (
 		<AppShell title="Alerts">
@@ -73,41 +93,28 @@ function Alerts() {
 				<Card className="p-5">
 					<h2 className="font-semibold">Alert rules</h2>
 					<p className="mt-1 text-xs text-muted-foreground">
-						Only "Budget violation" actually fires today. The rest, and picking
-						a delivery channel per rule, aren't wired up yet.
+						Only "Budget violation" actually fires today. The rest save your
+						preference for when real evaluation and delivery channels land.
 					</p>
 					<ul className="mt-4 space-y-4">
-						{[
-							{
-								label: "Budget violation",
-								desc: "Fire when any PR exceeds a hard budget.",
-								active: true,
-							},
-							{
-								label: "3-day regression",
-								desc: "Fire on a 3-day worsening trend on any metric.",
-								active: false,
-							},
-							{
-								label: "Score below 80",
-								desc: "Fire when workspace median score falls under 80.",
-								active: false,
-							},
-							{
-								label: "Weekly digest",
-								desc: "Email summary every Monday at 9:00.",
-								active: false,
-							},
-						].map((r) => (
+						{rules.map((r) => (
 							<li
-								key={r.label}
+								key={r.key}
 								className="flex items-start justify-between gap-4"
 							>
 								<div>
 									<div className="text-sm font-medium">{r.label}</div>
 									<div className="text-xs text-muted-foreground">{r.desc}</div>
 								</div>
-								<Switch checked={r.active} disabled />
+								<Switch
+									checked={r.enabled}
+									disabled={toggleRule.isPending}
+									onCheckedChange={(enabled) =>
+										toggleRule.mutate({
+											data: { rule: r.key, enabled: Boolean(enabled) },
+										})
+									}
+								/>
 							</li>
 						))}
 					</ul>
