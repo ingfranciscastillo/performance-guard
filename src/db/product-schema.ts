@@ -44,6 +44,14 @@ export const repos = pgTable(
 		fullName: text("full_name").notNull(),
 		defaultBranch: text("default_branch").notNull(),
 		private: boolean("private").notNull().default(false),
+		/**
+		 * Names (never values) of repo secrets the generated workflow forwards to
+		 * the started server, e.g. ["DATABASE_URL", "GROQ_API_KEY"] — for repos
+		 * whose production server needs more than just a port to boot without
+		 * erroring on every request. The values stay in GitHub's own secret
+		 * store; the workflow only ever references `secrets.<NAME>`.
+		 */
+		envVarNames: jsonb("env_var_names").notNull().$type<string[]>().default([]),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 	},
 	(t) => [

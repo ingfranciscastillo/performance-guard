@@ -109,9 +109,20 @@ export function budgetlyWorkflowYaml(opts: {
 	startScript: string;
 	/** Port the serve script listens on once started. */
 	port: number;
+	/**
+	 * Names (never values) of repo secrets to forward to the started server,
+	 * e.g. ["DATABASE_URL", "GROQ_API_KEY"] — for repos whose production
+	 * server needs more than a port to boot without erroring on every
+	 * request. Each becomes a `secrets.<NAME>` reference in the generated
+	 * workflow; Budgetly never sees or stores the actual value.
+	 */
+	envVarNames: string[];
 	/** Origin Budgetly is reachable at, e.g. "https://budgetly.example.com" — no trailing slash. */
 	budgetlyOrigin: string;
 }): string {
+	const forwardedEnv = opts.envVarNames
+		.map((name) => `          ${name}: \${{ secrets.${name} }}\n`)
+		.join("");
 	return `${WORKFLOW_MANAGED_MARKER} Reconnecting this repository on Budgetly regenerates this file — edits made directly here will be overwritten.
 name: Budgetly Performance Budgets
 
@@ -142,7 +153,7 @@ ${setupAndInstall(opts.packageManager, opts.pnpmVersion, {
       - name: Start server in background
         env:
           PORT: \${{ env.BUDGETLY_PORT }}
-        run: |
+${forwardedEnv}        run: |
           ${runScript(opts.packageManager, opts.startScript)} &
           npx --yes wait-on -v "http://localhost:\${{ env.BUDGETLY_PORT }}" --timeout 180000 --interval 2000 --httpTimeout 10000
 
@@ -204,6 +215,14 @@ ${setupAndInstall(opts.packageManager, opts.pnpmVersion, {
 #    from this repo at connect time. Wrong? Disconnect and reconnect the repo
 #    on Budgetly (or type an override when connecting) to regenerate this
 #    file — don't edit the values above by hand, they'll be overwritten on
-#    the next reconnect.
+#    the next reconnect.${
+		opts.envVarNames.length > 0
+			? `
+# 3. Forwards these repo secrets to the started server: ${opts.envVarNames.join(", ")}.
+#    Add/remove which ones by editing "Environment variables" when
+#    reconnecting this repo on Budgetly — the values themselves stay in
+#    this repo's own secrets, Budgetly only stores the names.`
+			: ""
+	}
 `;
 }

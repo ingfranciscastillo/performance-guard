@@ -1,0 +1,1 @@
+ALTER TABLE "repos" ADD COLUMN "env_var_names" jsonb DEFAULT '[]'::jsonb NOT NULL;

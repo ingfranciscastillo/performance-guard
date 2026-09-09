@@ -88,6 +88,7 @@ function ConnectRepo() {
 	const [postComments, setPostComments] = useState(true);
 	const [startScript, setStartScript] = useState("");
 	const [port, setPort] = useState("");
+	const [envVarNames, setEnvVarNames] = useState("");
 
 	const orgs = useMemo(
 		() => Array.from(new Set(available.map((r) => r.org))),
@@ -157,6 +158,10 @@ function ConnectRepo() {
 				branchProtect,
 				startScript: startScript.trim() || undefined,
 				port: port.trim() ? Number(port) : undefined,
+				envVarNames: envVarNames
+					.split(",")
+					.map((n) => n.trim())
+					.filter(Boolean),
 			},
 		});
 	};
@@ -429,6 +434,30 @@ function ConnectRepo() {
 											className="font-mono text-xs"
 										/>
 									</div>
+								</div>
+							</Card>
+
+							<Card className="p-5">
+								<h2 className="font-semibold text-sm">Environment variables</h2>
+								<p className="mt-1 text-xs text-muted-foreground">
+									Comma-separated names of repo secrets the started server needs
+									to boot (e.g. a database URL) — not their values. Budgetly
+									only stores the names; each becomes a{" "}
+									<code className="font-mono">secrets.NAME</code> reference in
+									the generated workflow, so the secret must already exist in
+									this repo's own GitHub settings.
+								</p>
+								<div className="mt-4 space-y-1.5">
+									<Label htmlFor="env-var-names" className="text-sm">
+										Secret names
+									</Label>
+									<Input
+										id="env-var-names"
+										placeholder="DATABASE_URL, GROQ_API_KEY"
+										value={envVarNames}
+										onChange={(e) => setEnvVarNames(e.target.value)}
+										className="font-mono text-xs"
+									/>
 								</div>
 							</Card>
 

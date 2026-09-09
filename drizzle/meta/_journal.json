@@ -29,6 +29,13 @@
       "when": 1788904897968,
       "tag": "0003_sad_vivisector",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1788934519804,
+      "tag": "0004_spicy_red_shift",
+      "breakpoints": true
     }
   ]
 }

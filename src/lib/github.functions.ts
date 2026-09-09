@@ -97,10 +97,45 @@ interface ConnectRepositoriesInput {
 	 */
 	startScript?: string;
 	port?: number;
+	/**
+	 * Names (never values) of repo secrets the generated workflow should
+	 * forward to the started server — e.g. ["DATABASE_URL"] for a repo whose
+	 * SSR loader errors on every request without a DB connection string.
+	 * Applied to every repo in this batch, same as startScript/port.
+	 */
+	envVarNames?: string[];
 }
 
 const DEFAULT_PORT = 3000;
 const FALLBACK_START_SCRIPT = "start"; // TODO: replace me — no start/preview/serve script was found
+
+/** A GitHub Actions secret/env var name: letters, digits, underscores, not starting with a digit. */
+const ENV_VAR_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+/**
+ * Cleans up user-typed env var names: trims, drops anything that isn't a
+ * valid identifier (silently — this only controls which `secrets.<NAME>`
+ * references get written into YAML we generate, not user-facing validation),
+ * and dedupes. BUDGETLY_TOKEN is already wired in separately, so a repeat
+ * entry for it would just be a harmless no-op duplicate — still stripped to
+ * keep the generated workflow's env block clean.
+ */
+function sanitizeEnvVarNames(names: string[] | undefined): string[] {
+	if (!names) return [];
+	const seen = new Set<string>();
+	for (const raw of names) {
+		const name = raw.trim();
+		if (
+			!name ||
+			!ENV_VAR_NAME_PATTERN.test(name) ||
+			name === "BUDGETLY_TOKEN"
+		) {
+			continue;
+		}
+		seen.add(name);
+	}
+	return Array.from(seen);
+}
 
 /**
  * Where Budgetly is reachable, for the workflow's `fetch(...)` call to our
@@ -137,6 +172,7 @@ export const connectRepositories = createServerFn({ method: "POST" })
 		const accessToken = await getGithubAccessToken(session.user.id);
 		const budgetlyOrigin = getBudgetlyOrigin();
 		const presetBudgets = PRESET_BUDGETS[data.preset] ?? [];
+		const envVarNames = sanitizeEnvVarNames(data.envVarNames);
 		let connected = 0;
 		let workflowsAdded = 0;
 		let workflowsUpdated = 0;
@@ -152,29 +188,49 @@ export const connectRepositories = createServerFn({ method: "POST" })
 					fullName: repo.fullName,
 					defaultBranch: repo.defaultBranch,
 					private: repo.private,
+					envVarNames,
 				})
 				.onConflictDoNothing({
 					target: [repos.organizationId, repos.githubRepoId],
 				})
 				.returning({ id: repos.id });
 
-			if (!inserted) continue; // already connected to this org
-			connected++;
+			if (inserted) {
+				connected++;
 
-			if (presetBudgets.length > 0) {
-				await db.insert(budgets).values(
-					presetBudgets.map((b) => ({
-						repoId: inserted.id,
-						metric: b.metric,
-						max: b.max,
-						severity: b.severity,
-						action: (data.branchProtect
-							? b.action
-							: b.action === "block"
-								? "comment"
-								: b.action) as Action,
-					})),
-				);
+				if (presetBudgets.length > 0) {
+					await db.insert(budgets).values(
+						presetBudgets.map((b) => ({
+							repoId: inserted.id,
+							metric: b.metric,
+							max: b.max,
+							severity: b.severity,
+							action: (data.branchProtect
+								? b.action
+								: b.action === "block"
+									? "comment"
+									: b.action) as Action,
+						})),
+					);
+				}
+			} else {
+				// Already connected to this org — "connecting" it again is how a
+				// user regenerates the workflow (no separate disconnect flow yet),
+				// so update the stored env var names and fall through to recommit
+				// the workflow file below. Budgets are deliberately left untouched:
+				// re-applying the preset here would clobber anything the user has
+				// customized since.
+				const [existing] = await db
+					.update(repos)
+					.set({ envVarNames })
+					.where(
+						and(
+							eq(repos.organizationId, organizationId),
+							eq(repos.githubRepoId, repo.id),
+						),
+					)
+					.returning({ id: repos.id });
+				if (!existing) continue; // shouldn't happen, but nothing to regenerate against
 			}
 
 			// The package manager comes from the repo's own lockfile — it isn't a
@@ -230,6 +286,7 @@ export const connectRepositories = createServerFn({ method: "POST" })
 					yarnVersion,
 					startScript,
 					port,
+					envVarNames,
 					budgetlyOrigin,
 				}),
 			);
