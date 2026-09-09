@@ -140,9 +140,17 @@ export function AppShell({
 							<Bell className="size-4" />
 						</Button>
 						<ThemeToggle />
-						<div className="grid size-8 shrink-0 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-							{initial}
-						</div>
+						{session?.user.image ? (
+							<img
+								src={session.user.image}
+								alt={session.user.name}
+								className="size-8 shrink-0 rounded-full object-cover"
+							/>
+						) : (
+							<div className="grid size-8 shrink-0 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+								{initial}
+							</div>
+						)}
 					</div>
 				</header>
 
