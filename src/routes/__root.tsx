@@ -36,7 +36,10 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				content: "width=device-width, initial-scale=1",
 			},
 			{
-				title: "TanStack Start Starter",
+				// Every page-rendering route sets its own title, so this only
+				// shows up if one is ever added without one — better a real
+				// brand name than the framework starter's leftover default.
+				title: "Vitalgate",
 			},
 		],
 		links: [

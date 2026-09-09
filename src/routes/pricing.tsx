@@ -3,6 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { MarketingShell } from "@/components/marketing-shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { SITE_URL } from "@/lib/seo";
 
 export const Route = createFileRoute("/pricing")({
 	head: () => ({
@@ -13,13 +14,17 @@ export const Route = createFileRoute("/pricing")({
 				content:
 					"Transparent pricing for teams that take web performance seriously. Free trial, no credit card.",
 			},
+			{ property: "og:type", content: "website" },
+			{ property: "og:url", content: `${SITE_URL}/pricing` },
 			{ property: "og:title", content: "Vitalgate pricing" },
 			{
 				property: "og:description",
 				content:
 					"Starter, Team and Enterprise plans for performance budget tracking.",
 			},
+			{ name: "twitter:card", content: "summary_large_image" },
 		],
+		links: [{ rel: "canonical", href: `${SITE_URL}/pricing` }],
 	}),
 	component: Pricing,
 });
@@ -89,7 +94,7 @@ function Pricing() {
 							className={`p-7 transition-colors duration-200 ${p.popular ? "border-brand" : "hover:border-foreground/30"}`}
 						>
 							<div className="flex items-center justify-between">
-								<h3 className="font-bold">{p.name}</h3>
+								<h2 className="font-bold">{p.name}</h2>
 								{p.popular && (
 									<span className="border border-brand px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand">
 										Most popular

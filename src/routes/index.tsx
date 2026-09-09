@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getRepo, type MetricKey, PRS, REPOS } from "@/lib/mock-data";
 import { EASE_OUT, staggerContainer, staggerItem } from "@/lib/motion";
+import { SITE_URL } from "@/lib/seo";
 
 export const Route = createFileRoute("/")({
 	head: () => ({
@@ -37,6 +38,8 @@ export const Route = createFileRoute("/")({
 				content:
 					"Ship faster without shipping regressions. Vitalgate runs Lighthouse on every PR, enforces your performance budgets, and blocks merges that break them.",
 			},
+			{ property: "og:type", content: "website" },
+			{ property: "og:url", content: SITE_URL },
 			{
 				property: "og:title",
 				content: "Vitalgate: Performance Budgets for every PR",
@@ -46,7 +49,27 @@ export const Route = createFileRoute("/")({
 				content:
 					"Catch web performance regressions before they reach production.",
 			},
+			{ name: "twitter:card", content: "summary_large_image" },
+			{
+				"script:ld+json": {
+					"@context": "https://schema.org",
+					"@type": "SoftwareApplication",
+					name: "Vitalgate",
+					url: SITE_URL,
+					applicationCategory: "DeveloperApplication",
+					operatingSystem: "Web",
+					description:
+						"Enforces Core Web Vitals performance budgets on every GitHub pull request, blocking merges that regress LCP, INP, CLS, and Lighthouse score.",
+					offers: {
+						"@type": "Offer",
+						price: "0",
+						priceCurrency: "USD",
+						description: "Free for the first 10 repositories.",
+					},
+				},
+			},
 		],
+		links: [{ rel: "canonical", href: SITE_URL }],
 	}),
 	component: Landing,
 });

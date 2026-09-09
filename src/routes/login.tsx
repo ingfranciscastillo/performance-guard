@@ -15,6 +15,7 @@ import { getSession } from "@/lib/auth.functions";
 import { authClient } from "@/lib/auth-client";
 import { linkUnderline } from "@/lib/link-hover";
 import { EASE_IN, EASE_OUT, staggerContainer, staggerItem } from "@/lib/motion";
+import { SITE_URL } from "@/lib/seo";
 
 export const Route = createFileRoute("/login")({
 	// Signing in again while already signed in should just land on the
@@ -33,7 +34,9 @@ export const Route = createFileRoute("/login")({
 				content:
 					"Sign in to Vitalgate with GitHub to monitor performance budgets on every PR.",
 			},
+			{ property: "og:url", content: `${SITE_URL}/login` },
 		],
+		links: [{ rel: "canonical", href: `${SITE_URL}/login` }],
 	}),
 	component: Login,
 });

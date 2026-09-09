@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# Server endpoints, not pages — no reason for a crawler to fetch these.
+Disallow: /api/
+
+# The authenticated app (/dashboard, /repositories, /pulls, /team, /alerts,
+# /settings, ...) is intentionally NOT disallowed here: those pages already
+# carry a noindex meta tag (see _authenticated.tsx), and blocking them via
+# robots.txt instead would stop a crawler from ever fetching the page far
+# enough to see that tag — Google's own guidance is that this can leave a
+# URL indexed anyway, just with no description, which is worse.
+
+Sitemap: https://performance-guard.vercel.app/sitemap.xml
