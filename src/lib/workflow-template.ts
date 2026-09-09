@@ -1,10 +1,12 @@
+import { WORKFLOW_MANAGED_MARKER } from "@/lib/github";
+
 /**
  * Generic GitHub Action template committed to a repo when it's connected.
  * The serve command and port are filled in from either an auto-detected
  * package.json script or a value the user typed when connecting — never
  * hardcoded, since every project's build/serve setup differs. The repo id,
- * default branch, and ingest payload wiring are filled in since we already
- * know them.
+ * default branch, ingest URL, and payload wiring are filled in since we
+ * already know them from the request that's connecting the repo.
  */
 export function budgetlyWorkflowYaml(opts: {
 	defaultBranch: string;
@@ -13,8 +15,11 @@ export function budgetlyWorkflowYaml(opts: {
 	startScript: string;
 	/** Port the serve script listens on once started. */
 	port: number;
+	/** Origin Budgetly is reachable at, e.g. "https://budgetly.example.com" — no trailing slash. */
+	budgetlyOrigin: string;
 }): string {
-	return `name: Budgetly Performance Budgets
+	return `${WORKFLOW_MANAGED_MARKER} Reconnecting this repository on Budgetly regenerates this file — edits made directly here will be overwritten.
+name: Budgetly Performance Budgets
 
 on:
   pull_request:
@@ -94,7 +99,7 @@ jobs:
           };
           // Lighthouse (lab data) has no INP audit — INP is a field metric,
           // not something a single synthetic run produces. Left out on purpose.
-          fetch("https://YOUR-BUDGETLY-DOMAIN/api/ingest", {
+          fetch("${opts.budgetlyOrigin}/api/ingest", {
             method: "POST",
             headers: {
               "content-type": "application/json",
@@ -120,13 +125,13 @@ jobs:
           '
 
 # Setup checklist:
-# 1. Replace YOUR-BUDGETLY-DOMAIN above with where Budgetly is deployed.
-# 2. Add a repo secret named BUDGETLY_TOKEN (Settings > Secrets and
+# 1. Add a repo secret named BUDGETLY_TOKEN (Settings > Secrets and
 #    variables > Actions) with the token from Budgetly's Settings page.
-# 3. Package manager (pnpm/yarn/npm) is auto-detected from the lockfile.
+# 2. Package manager (pnpm/yarn/npm) is auto-detected from the lockfile.
 #    The serve script ("${opts.startScript}") and port (${opts.port}) were
-#    detected from this repo's package.json at connect time — change the
-#    "env: BUDGETLY_PORT" value above, or the script name in the "Start
-#    server in background" step, if they're wrong or change later.
+#    detected from this repo's package.json at connect time. Wrong? Disconnect
+#    and reconnect the repo on Budgetly (or type an override when connecting)
+#    to regenerate this file — don't edit the values above by hand, they'll
+#    be overwritten on the next reconnect.
 `;
 }

@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequestHeaders } from "@tanstack/react-start/server";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { account, budgets, repos } from "@/db/schema";
@@ -99,6 +100,27 @@ interface ConnectRepositoriesInput {
 const DEFAULT_PORT = 3000;
 const FALLBACK_START_SCRIPT = "start"; // TODO: replace me — no start/preview/serve script was found
 
+/**
+ * Where Budgetly is reachable, for the workflow's `fetch(...)` call to our
+ * own ingest endpoint. Derived from the request that's connecting the repo
+ * (the browser's Origin header) rather than an env var, so it's automatically
+ * correct on localhost, a Vercel preview, and prod without any manual step —
+ * and stays correct if the deployment domain ever changes.
+ */
+function getBudgetlyOrigin(): string {
+	const headers = getRequestHeaders();
+	const origin = headers.get("origin");
+	if (origin) return origin;
+
+	const host = headers.get("host");
+	if (host) {
+		const proto = headers.get("x-forwarded-proto") ?? "https";
+		return `${proto}://${host}`;
+	}
+
+	return process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+}
+
 export const connectRepositories = createServerFn({ method: "POST" })
 	.validator((data: ConnectRepositoriesInput) => data)
 	.handler(async ({ data }) => {
@@ -111,9 +133,11 @@ export const connectRepositories = createServerFn({ method: "POST" })
 		}
 
 		const accessToken = await getGithubAccessToken(session.user.id);
+		const budgetlyOrigin = getBudgetlyOrigin();
 		const presetBudgets = PRESET_BUDGETS[data.preset] ?? [];
 		let connected = 0;
 		let workflowsAdded = 0;
+		let workflowsUpdated = 0;
 		const workflowErrors: string[] = [];
 
 		for (const repo of data.repos) {
@@ -171,13 +195,15 @@ export const connectRepositories = createServerFn({ method: "POST" })
 					githubRepoId: repo.id,
 					startScript,
 					port,
+					budgetlyOrigin,
 				}),
 			);
 			if (workflowResult.status === "created") workflowsAdded++;
+			if (workflowResult.status === "updated") workflowsUpdated++;
 			if (workflowResult.status === "error") {
 				workflowErrors.push(`${repo.fullName}: ${workflowResult.message}`);
 			}
 		}
 
-		return { connected, workflowsAdded, workflowErrors };
+		return { connected, workflowsAdded, workflowsUpdated, workflowErrors };
 	});

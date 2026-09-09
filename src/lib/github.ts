@@ -121,15 +121,27 @@ export function pickServeScript(
 
 export type CommitWorkflowResult =
 	| { status: "created" }
+	| { status: "updated" }
 	| { status: "already-exists" }
 	| { status: "error"; message: string };
 
 /**
+ * First line of every workflow Budgetly generates. Lets commitWorkflowFile
+ * tell "a file we generated, safe to regenerate on reconnect" apart from "the
+ * user wrote their own workflow at this path, don't touch it" — without this
+ * marker there'd be no way to support disconnect+reconnect picking up a
+ * template change without also risking clobbering a hand-written file.
+ */
+export const WORKFLOW_MANAGED_MARKER = "# Managed by Budgetly.";
+
+/**
  * Commits the Budgetly GitHub Action workflow to a repo, at
  * .github/workflows/budgetly.yml, using the user's own OAuth token (this
- * shows up as a real commit authored by them). Never overwrites an existing
- * file at that path — connecting a repo a second time, or a user who already
- * has a workflow there, must not silently clobber it.
+ * shows up as a real commit authored by them). If a file already exists at
+ * that path: overwrites it when it's one Budgetly generated before (carries
+ * WORKFLOW_MANAGED_MARKER — this is how disconnecting and reconnecting a repo
+ * picks up template changes), otherwise leaves it alone so a user's own
+ * hand-written workflow is never silently clobbered.
  */
 export async function commitWorkflowFile(
 	accessToken: string,
@@ -145,8 +157,22 @@ export async function commitWorkflowFile(
 	};
 
 	const existing = await fetch(url, { headers });
-	if (existing.status === 200) return { status: "already-exists" };
-	if (existing.status !== 404) {
+	let existingSha: string | undefined;
+	if (existing.status === 200) {
+		const file = (await existing.json()) as {
+			content: string;
+			encoding: string;
+			sha: string;
+		};
+		const existingContent =
+			file.encoding === "base64"
+				? Buffer.from(file.content, "base64").toString("utf8")
+				: "";
+		if (!existingContent.startsWith(WORKFLOW_MANAGED_MARKER)) {
+			return { status: "already-exists" };
+		}
+		existingSha = file.sha;
+	} else if (existing.status !== 404) {
 		return {
 			status: "error",
 			message: `GitHub API error checking for existing file: ${existing.status}`,
@@ -157,8 +183,11 @@ export async function commitWorkflowFile(
 		method: "PUT",
 		headers: { ...headers, "content-type": "application/json" },
 		body: JSON.stringify({
-			message: "Add Budgetly performance budget workflow",
+			message: existingSha
+				? "Update Budgetly performance budget workflow"
+				: "Add Budgetly performance budget workflow",
 			content: Buffer.from(content, "utf8").toString("base64"),
+			...(existingSha ? { sha: existingSha } : {}),
 		}),
 	});
 	if (!res.ok) {
@@ -167,5 +196,6 @@ export async function commitWorkflowFile(
 			message: `GitHub API error: ${res.status} ${await res.text()}`,
 		};
 	}
+	if (existingSha) return { status: "updated" };
 	return { status: "created" };
 }
