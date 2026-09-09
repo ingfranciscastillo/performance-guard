@@ -183,16 +183,22 @@ export const connectRepositories = createServerFn({ method: "POST" })
 				accessToken,
 				repo.fullName,
 			);
+			const pkg = await getPackageJson(accessToken, repo.fullName);
 
 			// A user-typed override applies to every repo in this batch; otherwise
 			// detect per-repo from package.json (each repo may serve differently).
-			let startScript = data.startScript?.trim();
-			if (!startScript) {
-				const pkg = await getPackageJson(accessToken, repo.fullName);
-				startScript =
-					pickServeScript(pkg?.scripts ?? {}) ?? FALLBACK_START_SCRIPT;
-			}
+			const startScript =
+				data.startScript?.trim() ||
+				pickServeScript(pkg?.scripts ?? {}) ||
+				FALLBACK_START_SCRIPT;
 			const port = data.port ?? DEFAULT_PORT;
+
+			// pnpm/setup requires an exact version — it only reads one from
+			// package.json's "packageManager" field itself, and most repos don't
+			// declare one. Use the repo's pin when present (matches its lockfile
+			// exactly), else "latest", an npm dist-tag pnpm/setup resolves itself.
+			const pnpmVersionMatch = pkg?.packageManager?.match(/^pnpm@(.+)$/);
+			const pnpmVersion = pnpmVersionMatch?.[1] ?? "latest";
 
 			// Best-effort: a repo we can't write the workflow to (e.g. the OAuth
 			// token doesn't cover it, or GitHub API hiccup) still stays connected
@@ -204,6 +210,7 @@ export const connectRepositories = createServerFn({ method: "POST" })
 					defaultBranch: repo.defaultBranch,
 					githubRepoId: repo.id,
 					packageManager,
+					pnpmVersion,
 					startScript,
 					port,
 					budgetlyOrigin,

@@ -8,7 +8,7 @@ import { WORKFLOW_MANAGED_MARKER } from "@/lib/github";
  * generated the lockfile, and "lts/*" tracks whichever Node LTS is current
  * instead of going stale the moment a specific number is deprecated.
  */
-function setupAndInstall(manager: PackageManager): string {
+function setupAndInstall(manager: PackageManager, pnpmVersion: string): string {
 	switch (manager) {
 		case "pnpm":
 			// pnpm/setup installs Node + pnpm and runs `pnpm install` itself, so
@@ -16,8 +16,13 @@ function setupAndInstall(manager: PackageManager): string {
 			// No explicit frozen-lockfile flag needed: pnpm already defaults to
 			// --frozen-lockfile behavior whenever the CI env var is set, which
 			// GitHub Actions always sets.
+			//
+			// `version` is required — pnpm/setup only reads it from package.json's
+			// "packageManager" field, and errors ("No pnpm version is specified")
+			// on any repo that doesn't declare one, which most don't.
 			return `      - uses: pnpm/setup@v2
         with:
+          version: ${pnpmVersion}
           cache: true`;
 		case "yarn":
 			return `      - uses: actions/setup-node@v7
@@ -65,6 +70,14 @@ export function budgetlyWorkflowYaml(opts: {
 	defaultBranch: string;
 	githubRepoId: string;
 	packageManager: PackageManager;
+	/**
+	 * Exact pnpm version to install (ignored for yarn/npm). Pass the version
+	 * from package.json's "packageManager" field when the repo declares one, to
+	 * match whatever generated its lockfile — otherwise "latest" (an npm
+	 * dist-tag pnpm/setup resolves itself, so it stays current with no
+	 * hardcoded number to go stale).
+	 */
+	pnpmVersion: string;
 	/** package.json script name that serves the production build (e.g. "start", "preview"). */
 	startScript: string;
 	/** Port the serve script listens on once started. */
@@ -91,7 +104,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-${setupAndInstall(opts.packageManager)}
+${setupAndInstall(opts.packageManager, opts.pnpmVersion)}
 
       - name: Build
         run: ${runScript(opts.packageManager, "build")}
@@ -154,10 +167,11 @@ ${setupAndInstall(opts.packageManager)}
 # Setup checklist:
 # 1. Add a repo secret named BUDGETLY_TOKEN (Settings > Secrets and
 #    variables > Actions) with the token from Budgetly's Settings page.
-# 2. Package manager (${opts.packageManager}), serve script ("${opts.startScript}"),
-#    and port (${opts.port}) were detected from this repo at connect time.
-#    Wrong? Disconnect and reconnect the repo on Budgetly (or type an
-#    override when connecting) to regenerate this file — don't edit the
-#    values above by hand, they'll be overwritten on the next reconnect.
+# 2. Package manager (${opts.packageManager}${opts.packageManager === "pnpm" ? ` ${opts.pnpmVersion}` : ""}),
+#    serve script ("${opts.startScript}"), and port (${opts.port}) were detected
+#    from this repo at connect time. Wrong? Disconnect and reconnect the repo
+#    on Budgetly (or type an override when connecting) to regenerate this
+#    file — don't edit the values above by hand, they'll be overwritten on
+#    the next reconnect.
 `;
 }
