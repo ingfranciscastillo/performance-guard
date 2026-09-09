@@ -100,7 +100,7 @@ jobs:
     runs-on: ubuntu-latest
     # Bounds the whole job so a hung dev server (or anything else) fails loudly
     # instead of running until someone notices and cancels it by hand.
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
 
@@ -110,9 +110,11 @@ ${setupAndInstall(opts.packageManager, opts.pnpmVersion)}
         run: ${runScript(opts.packageManager, "build")}
 
       - name: Start server in background
+        env:
+          PORT: \${{ env.BUDGETLY_PORT }}
         run: |
           ${runScript(opts.packageManager, opts.startScript)} &
-          npx --yes wait-on "http://localhost:\${{ env.BUDGETLY_PORT }}" --timeout 60000
+          npx --yes wait-on -v "http://localhost:\${{ env.BUDGETLY_PORT }}" --timeout 180000 --interval 2000 --httpTimeout 10000
 
       - name: Run Lighthouse
         timeout-minutes: 5
