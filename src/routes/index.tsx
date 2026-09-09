@@ -27,7 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getRepo, type MetricKey, PRS, REPOS } from "@/lib/mock-data";
 import { EASE_OUT, staggerContainer, staggerItem } from "@/lib/motion";
-import { SITE_URL } from "@/lib/seo";
+import { OG_IMAGE_META, SITE_URL } from "@/lib/seo";
 
 export const Route = createFileRoute("/")({
 	head: () => ({
@@ -49,6 +49,7 @@ export const Route = createFileRoute("/")({
 				content:
 					"Catch web performance regressions before they reach production.",
 			},
+			...OG_IMAGE_META,
 			{ name: "twitter:card", content: "summary_large_image" },
 			{
 				"script:ld+json": {

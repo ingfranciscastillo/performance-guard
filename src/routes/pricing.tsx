@@ -3,7 +3,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { MarketingShell } from "@/components/marketing-shell";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { SITE_URL } from "@/lib/seo";
+import { OG_IMAGE_META, SITE_URL } from "@/lib/seo";
 
 export const Route = createFileRoute("/pricing")({
 	head: () => ({
@@ -22,6 +22,7 @@ export const Route = createFileRoute("/pricing")({
 				content:
 					"Starter, Team and Enterprise plans for performance budget tracking.",
 			},
+			...OG_IMAGE_META,
 			{ name: "twitter:card", content: "summary_large_image" },
 		],
 		links: [{ rel: "canonical", href: `${SITE_URL}/pricing` }],
