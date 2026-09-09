@@ -47,6 +47,11 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				rel: "stylesheet",
 				href: appCss,
 			},
+			// SVG-only — no PNG/ICO fallback exists yet, so pre-Chromium Safari
+			// and other browsers without SVG favicon support fall back to no
+			// icon rather than a broken one. Add a rasterized apple-touch-icon
+			// (PNG, 180x180) alongside this once real brand assets exist.
+			{ rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
 		],
 	}),
 	shellComponent: RootDocument,
