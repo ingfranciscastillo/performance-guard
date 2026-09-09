@@ -100,9 +100,17 @@ function Team() {
 						<ul className="divide-y divide-border">
 							{members.map((m) => (
 								<li key={m.id} className="flex items-center gap-4 py-3">
-									<div className="h-9 w-9 rounded-full bg-linear-to-br from-primary/60 to-primary/20 grid place-items-center text-xs font-semibold text-primary-foreground">
-										{initials(m.user.name || m.user.email)}
-									</div>
+									{m.user.image ? (
+										<img
+											src={m.user.image}
+											alt={m.user.name}
+											className="h-9 w-9 shrink-0 rounded-full object-cover"
+										/>
+									) : (
+										<div className="h-9 w-9 shrink-0 rounded-full bg-linear-to-br from-primary/60 to-primary/20 grid place-items-center text-xs font-semibold text-primary-foreground">
+											{initials(m.user.name || m.user.email)}
+										</div>
+									)}
 									<div className="flex-1 min-w-0">
 										<div className="text-sm font-medium">
 											{m.user.name}

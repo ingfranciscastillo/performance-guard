@@ -12,10 +12,10 @@ import {
 } from "@phosphor-icons/react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import type { ComponentType, ReactNode } from "react";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 import { Logo } from "./logo";
+import { NotificationBell } from "./notification-bell";
 import { ThemeToggle } from "./theme-toggle";
 
 const nav: {
@@ -136,9 +136,7 @@ export function AppShell({
 					</div>
 
 					<div className="ml-auto flex items-center gap-2">
-						<Button variant="ghost" size="icon" aria-label="Notifications">
-							<Bell className="size-4" />
-						</Button>
+						<NotificationBell />
 						<ThemeToggle />
 						{session?.user.image ? (
 							<img
