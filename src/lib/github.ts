@@ -67,17 +67,23 @@ export async function listGithubRepos(accessToken: string): Promise<GhRepo[]> {
 	return repos;
 }
 
+/** The subset of package.json fields the workflow generator cares about. */
+export interface PackageJsonInfo {
+	scripts: Record<string, string>;
+	/** Corepack-style pin, e.g. "pnpm@9.12.4" or "yarn@4.5.0" — undefined if unset. */
+	packageManager?: string;
+}
+
 /**
- * Reads package.json's "scripts" from a repo's default branch, to pick a
- * real serve command instead of guessing "start" for everyone. Returns null
- * if there's no package.json at the repo root, or it doesn't parse — not
- * every project is a root-level Node package (monorepos, non-JS projects),
- * and the caller falls back to a placeholder in that case.
+ * Reads and parses package.json from a repo's default branch. Returns null if
+ * there's no package.json at the repo root, or it doesn't parse — not every
+ * project is a root-level Node package (monorepos, non-JS projects), and the
+ * caller falls back to a placeholder in that case.
  */
-export async function getPackageJsonScripts(
+export async function getPackageJson(
 	accessToken: string,
 	fullName: string,
-): Promise<Record<string, string> | null> {
+): Promise<PackageJsonInfo | null> {
 	const res = await fetch(
 		`https://api.github.com/repos/${fullName}/contents/package.json`,
 		{
@@ -96,7 +102,12 @@ export async function getPackageJsonScripts(
 		const pkg = JSON.parse(
 			Buffer.from(file.content, "base64").toString("utf8"),
 		);
-		return pkg && typeof pkg.scripts === "object" ? pkg.scripts : null;
+		if (!pkg || typeof pkg !== "object") return null;
+		return {
+			scripts: typeof pkg.scripts === "object" ? pkg.scripts : {},
+			packageManager:
+				typeof pkg.packageManager === "string" ? pkg.packageManager : undefined,
+		};
 	} catch {
 		return null;
 	}
@@ -106,17 +117,53 @@ export async function getPackageJsonScripts(
  * Picks which package.json script serves a production build, in the order a
  * user would actually reach for one: "start" (the Node/Next.js convention),
  * then "preview" (Vite/Astro's equivalent), then "serve". Returns null if
- * scripts don't exist or none of these are defined — the caller must fall
- * back to a placeholder the user fills in by hand.
+ * none of these are defined — the caller must fall back to a placeholder the
+ * user fills in by hand.
  */
 export function pickServeScript(
-	scripts: Record<string, string> | null,
+	scripts: Record<string, string>,
 ): string | null {
-	if (!scripts) return null;
 	for (const candidate of ["start", "preview", "serve"]) {
 		if (scripts[candidate]) return candidate;
 	}
 	return null;
+}
+
+export type PackageManager = "pnpm" | "yarn" | "npm";
+
+/**
+ * Detects which package manager a repo actually uses, from its lockfile —
+ * the one source of truth for "what will `install` actually run against"
+ * (a project can have any tool's config lying around, but only one lockfile
+ * is real). Defaults to npm when no lockfile is found, matching npm's own
+ * behavior of working without one. One API call: list the repo root instead
+ * of probing each lockfile path individually.
+ */
+export async function detectPackageManager(
+	accessToken: string,
+	fullName: string,
+): Promise<PackageManager> {
+	const res = await fetch(
+		`https://api.github.com/repos/${fullName}/contents/`,
+		{
+			headers: {
+				Authorization: `Bearer ${accessToken}`,
+				Accept: "application/vnd.github+json",
+				"X-GitHub-Api-Version": "2022-11-28",
+			},
+		},
+	);
+	if (!res.ok) return "npm";
+
+	try {
+		const entries = (await res.json()) as { name: string }[];
+		const names = new Set(entries.map((e) => e.name));
+		if (names.has("pnpm-lock.yaml")) return "pnpm";
+		if (names.has("yarn.lock")) return "yarn";
+		return "npm";
+	} catch {
+		return "npm";
+	}
 }
 
 export type CommitWorkflowResult =

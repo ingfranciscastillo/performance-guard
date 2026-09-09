@@ -6,7 +6,8 @@ import { account, budgets, repos } from "@/db/schema";
 import { ensureSession } from "@/lib/auth.functions";
 import {
 	commitWorkflowFile,
-	getPackageJsonScripts,
+	detectPackageManager,
+	getPackageJson,
 	type GhRepo,
 	listGithubRepos,
 	pickServeScript,
@@ -175,12 +176,21 @@ export const connectRepositories = createServerFn({ method: "POST" })
 				);
 			}
 
+			// The package manager comes from the repo's own lockfile — it isn't a
+			// user preference, it's a fact about the project (installing with the
+			// wrong one breaks against the committed lockfile).
+			const packageManager = await detectPackageManager(
+				accessToken,
+				repo.fullName,
+			);
+
 			// A user-typed override applies to every repo in this batch; otherwise
 			// detect per-repo from package.json (each repo may serve differently).
 			let startScript = data.startScript?.trim();
 			if (!startScript) {
-				const scripts = await getPackageJsonScripts(accessToken, repo.fullName);
-				startScript = pickServeScript(scripts) ?? FALLBACK_START_SCRIPT;
+				const pkg = await getPackageJson(accessToken, repo.fullName);
+				startScript =
+					pickServeScript(pkg?.scripts ?? {}) ?? FALLBACK_START_SCRIPT;
 			}
 			const port = data.port ?? DEFAULT_PORT;
 
@@ -193,6 +203,7 @@ export const connectRepositories = createServerFn({ method: "POST" })
 				budgetlyWorkflowYaml({
 					defaultBranch: repo.defaultBranch,
 					githubRepoId: repo.id,
+					packageManager,
 					startScript,
 					port,
 					budgetlyOrigin,
