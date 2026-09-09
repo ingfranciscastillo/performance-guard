@@ -42,11 +42,11 @@ export const Route = createFileRoute("/_authenticated/repositories/new")({
 		context.queryClient.ensureQueryData(connectableReposQueryOptions()),
 	head: () => ({
 		meta: [
-			{ title: "Connect a repository: Budgetly" },
+			{ title: "Connect a repository: Vitalgate" },
 			{
 				name: "description",
 				content:
-					"Connect a GitHub repository to Budgetly to start enforcing performance budgets on every PR.",
+					"Connect a GitHub repository to Vitalgate to start enforcing performance budgets on every PR.",
 			},
 		],
 	}),
@@ -124,7 +124,7 @@ function ConnectRepo() {
 			toast.success(
 				`Connected ${connected} ${connected === 1 ? "repository" : "repositories"}` +
 					(workflowsAdded > 0
-						? `, added the Budgetly workflow to ${workflowsAdded}`
+						? `, added the Vitalgate workflow to ${workflowsAdded}`
 						: "") +
 					(workflowsUpdated > 0 ? `, updated it on ${workflowsUpdated}` : ""),
 			);
@@ -181,7 +181,7 @@ function ConnectRepo() {
 							Connect a repository
 						</h1>
 						<p className="text-sm text-muted-foreground mt-1">
-							Pick one or more repositories. Budgetly will install the GitHub
+							Pick one or more repositories. Vitalgate will install the GitHub
 							App, fetch the baseline, and start auditing every PR.
 						</p>
 					</div>
@@ -404,7 +404,7 @@ function ConnectRepo() {
 							<Card className="p-5">
 								<h2 className="font-semibold text-sm">Serve command</h2>
 								<p className="mt-1 text-xs text-muted-foreground">
-									Budgetly detects a "start"/"preview"/"serve" script from each
+									Vitalgate detects a "start"/"preview"/"serve" script from each
 									repo's package.json automatically. Set these to override it
 									for every repository selected above.
 								</p>
@@ -441,7 +441,7 @@ function ConnectRepo() {
 								<h2 className="font-semibold text-sm">Environment variables</h2>
 								<p className="mt-1 text-xs text-muted-foreground">
 									Comma-separated names of repo secrets the started server needs
-									to boot (e.g. a database URL) — not their values. Budgetly
+									to boot (e.g. a database URL) — not their values. Vitalgate
 									only stores the names; each becomes a{" "}
 									<code className="font-mono">secrets.NAME</code> reference in
 									the generated workflow, so the secret must already exist in
@@ -494,7 +494,7 @@ function ConnectRepo() {
 					<Card className="p-6 max-w-xl">
 						<h2 className="font-semibold">Connect by URL</h2>
 						<p className="text-sm text-muted-foreground mt-1">
-							Paste a public GitHub repository URL. Budgetly will request
+							Paste a public GitHub repository URL. Vitalgate will request
 							read-only access.
 						</p>
 						<div className="mt-5 space-y-2">

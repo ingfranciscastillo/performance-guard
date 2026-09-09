@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/_authenticated/team")({
-	head: () => ({ meta: [{ title: "Team: Budgetly" }] }),
+	head: () => ({ meta: [{ title: "Team: Vitalgate" }] }),
 	component: Team,
 });
 

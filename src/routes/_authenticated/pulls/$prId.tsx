@@ -29,7 +29,7 @@ export const Route = createFileRoute("/_authenticated/pulls/$prId")({
 		if (!pull) throw notFound();
 		return pull;
 	},
-	head: ({ params }) => ({ meta: [{ title: `PR ${params.prId}: Budgetly` }] }),
+	head: ({ params }) => ({ meta: [{ title: `PR ${params.prId}: Vitalgate` }] }),
 	notFoundComponent: () => (
 		<AppShell title="PR not found">
 			<p className="text-muted-foreground">No PR with that id.</p>
@@ -200,7 +200,7 @@ function PrDetail() {
 			<Card className="mt-6 p-5">
 				<h2 className="font-semibold">Posted to GitHub</h2>
 				<pre className="mt-4 p-4 rounded-md bg-muted/50 border border-border font-mono text-xs overflow-x-auto whitespace-pre-wrap">
-					{`## 🟢 Budgetly performance report
+					{`## 🟢 Vitalgate performance report
 
 | Metric | Baseline | PR | Δ |
 |---|---|---|---|

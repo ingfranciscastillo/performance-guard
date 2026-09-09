@@ -123,7 +123,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 				</div>
 				<div className="border-t border-border">
 					<div className="mx-auto max-w-6xl px-5 py-4 font-mono text-xs text-muted-foreground">
-						© {new Date().getFullYear()} Budgetly Labs
+						© {new Date().getFullYear()} Vitalgate Labs
 					</div>
 				</div>
 			</footer>

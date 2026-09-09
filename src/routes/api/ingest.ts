@@ -152,7 +152,7 @@ async function handleIngest(request: Request) {
 		.limit(1);
 	if (!repo) {
 		return json(
-			{ error: "Repo not connected to this organization on Budgetly" },
+			{ error: "Repo not connected to this organization on Vitalgate" },
 			404,
 		);
 	}

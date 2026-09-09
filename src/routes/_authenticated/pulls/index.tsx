@@ -10,7 +10,7 @@ import { orgPullsQueryOptions } from "@/lib/pulls.queries";
 export const Route = createFileRoute("/_authenticated/pulls/")({
 	loader: ({ context }) =>
 		context.queryClient.ensureQueryData(orgPullsQueryOptions()),
-	head: () => ({ meta: [{ title: "Pull Requests: Budgetly" }] }),
+	head: () => ({ meta: [{ title: "Pull Requests: Vitalgate" }] }),
 	component: Pulls,
 });
 

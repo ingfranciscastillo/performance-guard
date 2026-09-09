@@ -7,7 +7,7 @@ import { ensureSession } from "@/lib/auth.functions";
 export interface DashboardStats {
 	repoCount: number;
 	newReposThisWeek: number;
-	/** Total PRs Budgetly has recorded for the org — not "open" vs "closed", see RepoListItem. */
+	/** Total PRs Vitalgate has recorded for the org — not "open" vs "closed", see RepoListItem. */
 	prCount: number;
 	newPrsToday: number;
 	/** PRs currently in a failing state (latest run per PR), not a historical count. */

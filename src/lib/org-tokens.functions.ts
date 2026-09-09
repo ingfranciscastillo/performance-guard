@@ -6,7 +6,7 @@ import { orgTokens } from "@/db/schema";
 import { ensureSession } from "@/lib/auth.functions";
 
 function generateRawToken() {
-	return `bgtly_${randomBytes(24).toString("hex")}`;
+	return `vgate_${randomBytes(24).toString("hex")}`;
 }
 
 function hashToken(raw: string) {

@@ -33,7 +33,7 @@ export const Route = createFileRoute("/_authenticated/dashboard")({
 			context.queryClient.ensureQueryData(orgPullsQueryOptions()),
 			context.queryClient.ensureQueryData(orgAlertsQueryOptions()),
 		]),
-	head: () => ({ meta: [{ title: "Dashboard: Budgetly" }] }),
+	head: () => ({ meta: [{ title: "Dashboard: Vitalgate" }] }),
 	component: Dashboard,
 });
 

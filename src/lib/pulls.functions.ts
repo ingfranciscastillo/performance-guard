@@ -20,7 +20,7 @@ export interface OrgPullListItem {
 	baseline: MetricSnapshot;
 }
 
-/** Every PR Budgetly has recorded, across every repo in the active org. */
+/** Every PR Vitalgate has recorded, across every repo in the active org. */
 export const getOrgPulls = createServerFn({ method: "GET" }).handler(
 	async (): Promise<OrgPullListItem[]> => {
 		const session = await ensureSession();

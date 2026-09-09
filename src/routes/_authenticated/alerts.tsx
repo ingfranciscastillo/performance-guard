@@ -30,7 +30,7 @@ export const Route = createFileRoute("/_authenticated/alerts")({
 			context.queryClient.ensureQueryData(orgAlertsQueryOptions()),
 			context.queryClient.ensureQueryData(alertRulesQueryOptions()),
 		]),
-	head: () => ({ meta: [{ title: "Alerts: Budgetly" }] }),
+	head: () => ({ meta: [{ title: "Alerts: Vitalgate" }] }),
 	component: Alerts,
 });
 

@@ -27,11 +27,11 @@ export const Route = createFileRoute("/login")({
 	},
 	head: () => ({
 		meta: [
-			{ title: "Sign in: Budgetly" },
+			{ title: "Sign in: Vitalgate" },
 			{
 				name: "description",
 				content:
-					"Sign in to Budgetly with GitHub to monitor performance budgets on every PR.",
+					"Sign in to Vitalgate with GitHub to monitor performance budgets on every PR.",
 			},
 		],
 	}),
@@ -181,7 +181,7 @@ function Login() {
 				</div>
 
 				<div className="font-mono text-xs text-muted-foreground">
-					© {new Date().getFullYear()} Budgetly Labs
+					© {new Date().getFullYear()} Vitalgate Labs
 				</div>
 			</section>
 		</div>
@@ -191,7 +191,7 @@ function Login() {
 const TESTIMONIALS = [
 	{
 		quote:
-			"Budgetly caught a 38% LCP regression before it hit prod. It paid for itself in one sprint.",
+			"Vitalgate caught a 38% LCP regression before it hit prod. It paid for itself in one sprint.",
 		name: "Marta Ruiz",
 		role: "Staff Engineer, Acme Storefront",
 		initials: "MR",

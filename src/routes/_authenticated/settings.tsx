@@ -29,7 +29,7 @@ import { setNotificationPref } from "@/lib/notification-prefs.functions";
 import { notificationPrefsQueryOptions } from "@/lib/notification-prefs.queries";
 
 export const Route = createFileRoute("/_authenticated/settings")({
-	head: () => ({ meta: [{ title: "Settings: Budgetly" }] }),
+	head: () => ({ meta: [{ title: "Settings: Vitalgate" }] }),
 	component: Settings,
 });
 

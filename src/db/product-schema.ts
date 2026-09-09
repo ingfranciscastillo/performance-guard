@@ -29,7 +29,7 @@ function id() {
 }
 
 /**
- * A GitHub repository connected to a Budgetly organization via the GitHub App
+ * A GitHub repository connected to a Vitalgate organization via the GitHub App
  * installation. Health/open-PR counts are computed from `pullRequests`, not
  * stored here.
  */
@@ -97,7 +97,7 @@ export const pullRequests = pgTable(
 			.references(() => repos.id, { onDelete: "cascade" }),
 		number: integer("number").notNull(),
 		title: text("title").notNull(),
-		/** GitHub login of the PR author. Not a Budgetly user reference — most PR authors never sign in. */
+		/** GitHub login of the PR author. Not a Vitalgate user reference — most PR authors never sign in. */
 		author: text("author").notNull(),
 		branch: text("branch").notNull(),
 		status: text("status").notNull().$type<PrStatus>(),

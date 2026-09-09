@@ -32,7 +32,7 @@ export async function sendEmail(opts: {
 	if (opts.to.length === 0) return;
 	const resend = getResendClient();
 	const { error } = await resend.emails.send({
-		from: process.env.RESEND_FROM_EMAIL || "Budgetly <onboarding@resend.dev>",
+		from: process.env.RESEND_FROM_EMAIL || "Vitalgate <onboarding@resend.dev>",
 		to: opts.to,
 		subject: opts.subject,
 		html: opts.html,

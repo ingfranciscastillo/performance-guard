@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_authenticated/repositories/$repoId")({
 		if (!data) throw notFound();
 		return data;
 	},
-	head: ({ params }) => ({ meta: [{ title: `${params.repoId}: Budgetly` }] }),
+	head: ({ params }) => ({ meta: [{ title: `${params.repoId}: Vitalgate` }] }),
 	notFoundComponent: () => (
 		<AppShell title="Repository not found">
 			<p className="text-muted-foreground">No repo with that id.</p>

@@ -7,13 +7,13 @@ import { Card } from "@/components/ui/card";
 export const Route = createFileRoute("/pricing")({
 	head: () => ({
 		meta: [
-			{ title: "Pricing: Budgetly" },
+			{ title: "Pricing: Vitalgate" },
 			{
 				name: "description",
 				content:
 					"Transparent pricing for teams that take web performance seriously. Free trial, no credit card.",
 			},
-			{ property: "og:title", content: "Budgetly pricing" },
+			{ property: "og:title", content: "Vitalgate pricing" },
 			{
 				property: "og:description",
 				content:

@@ -75,7 +75,7 @@ function renderDigestEmail(
 ): string {
 	return `
 		<div style="font-family: -apple-system, sans-serif; max-width: 480px; color: #111;">
-			<h2 style="margin-bottom: 4px;">Budgetly weekly digest</h2>
+			<h2 style="margin-bottom: 4px;">Vitalgate weekly digest</h2>
 			<p style="color: #666; margin-top: 0;">${orgName} — last 7 days</p>
 			<ul style="line-height: 1.8;">
 				<li><strong>${stats.prsAnalyzed}</strong> pull request${stats.prsAnalyzed === 1 ? "" : "s"} analyzed</li>
@@ -83,7 +83,7 @@ function renderDigestEmail(
 				<li><strong>${stats.alertsFired}</strong> alert${stats.alertsFired === 1 ? "" : "s"} fired</li>
 				${stats.avgPerf != null ? `<li>Average performance score: <strong>${stats.avgPerf}</strong></li>` : ""}
 			</ul>
-			<p><a href="${appUrl}/alerts">View alerts on Budgetly →</a></p>
+			<p><a href="${appUrl}/alerts">View alerts on Vitalgate →</a></p>
 		</div>
 	`;
 }
@@ -142,7 +142,7 @@ export async function runWeeklyDigest(): Promise<WeeklyDigestResult[]> {
 
 			await sendEmail({
 				to: emails,
-				subject: `Budgetly weekly digest — ${org.organizationName}`,
+				subject: `Vitalgate weekly digest — ${org.organizationName}`,
 				html: renderDigestEmail(org.organizationName, stats, appUrl),
 			});
 

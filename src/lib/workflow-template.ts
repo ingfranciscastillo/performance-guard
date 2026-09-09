@@ -80,10 +80,10 @@ function runScript(manager: PackageManager, script: string): string {
  * and where to report results — is resolved once at connect time from the
  * repo's own files and the request that connected it, instead of guessed
  * defaults baked into the template. Re-running "detect" only happens by
- * disconnecting and reconnecting the repo on Budgetly, which regenerates
+ * disconnecting and reconnecting the repo on Vitalgate, which regenerates
  * this whole file (see WORKFLOW_MANAGED_MARKER).
  */
-export function budgetlyWorkflowYaml(opts: {
+export function vitalgateWorkflowYaml(opts: {
 	defaultBranch: string;
 	githubRepoId: string;
 	packageManager: PackageManager;
@@ -114,24 +114,24 @@ export function budgetlyWorkflowYaml(opts: {
 	 * e.g. ["DATABASE_URL", "GROQ_API_KEY"] — for repos whose production
 	 * server needs more than a port to boot without erroring on every
 	 * request. Each becomes a `secrets.<NAME>` reference in the generated
-	 * workflow; Budgetly never sees or stores the actual value.
+	 * workflow; Vitalgate never sees or stores the actual value.
 	 */
 	envVarNames: string[];
-	/** Origin Budgetly is reachable at, e.g. "https://budgetly.example.com" — no trailing slash. */
-	budgetlyOrigin: string;
+	/** Origin Vitalgate is reachable at, e.g. "https://vitalgate.example.com" — no trailing slash. */
+	vitalgateOrigin: string;
 }): string {
 	const forwardedEnv = opts.envVarNames
 		.map((name) => `          ${name}: \${{ secrets.${name} }}\n`)
 		.join("");
-	return `${WORKFLOW_MANAGED_MARKER} Reconnecting this repository on Budgetly regenerates this file — edits made directly here will be overwritten.
-name: Budgetly Performance Budgets
+	return `${WORKFLOW_MANAGED_MARKER} Reconnecting this repository on Vitalgate regenerates this file — edits made directly here will be overwritten.
+name: Vitalgate Performance Budgets
 
 on:
   pull_request:
     branches: ["${opts.defaultBranch}"]
 
 env:
-  BUDGETLY_PORT: ${opts.port}
+  VITALGATE_PORT: ${opts.port}
 
 jobs:
   lighthouse:
@@ -152,18 +152,18 @@ ${setupAndInstall(opts.packageManager, opts.pnpmVersion, {
 
       - name: Start server in background
         env:
-          PORT: \${{ env.BUDGETLY_PORT }}
+          PORT: \${{ env.VITALGATE_PORT }}
 ${forwardedEnv}        run: |
           ${runScript(opts.packageManager, opts.startScript)} &
-          npx --yes wait-on -v "http://localhost:\${{ env.BUDGETLY_PORT }}" --timeout 180000 --interval 2000 --httpTimeout 10000
+          npx --yes wait-on -v "http://localhost:\${{ env.VITALGATE_PORT }}" --timeout 180000 --interval 2000 --httpTimeout 10000
 
       - name: Run Lighthouse
         timeout-minutes: 5
-        run: npx --yes lighthouse "http://localhost:\${{ env.BUDGETLY_PORT }}" --output=json --output-path=./lighthouse.json --chrome-flags="--headless --no-sandbox" --max-wait-for-load=45000
+        run: npx --yes lighthouse "http://localhost:\${{ env.VITALGATE_PORT }}" --output=json --output-path=./lighthouse.json --chrome-flags="--headless --no-sandbox" --max-wait-for-load=45000
 
-      - name: Report to Budgetly
+      - name: Report to Vitalgate
         env:
-          BUDGETLY_TOKEN: \${{ secrets.BUDGETLY_TOKEN }}
+          VITALGATE_TOKEN: \${{ secrets.VITALGATE_TOKEN }}
           PR_NUMBER: \${{ github.event.pull_request.number }}
           PR_TITLE: \${{ github.event.pull_request.title }}
           PR_AUTHOR: \${{ github.event.pull_request.user.login }}
@@ -182,11 +182,11 @@ ${forwardedEnv}        run: |
           };
           // Lighthouse (lab data) has no INP audit — INP is a field metric,
           // not something a single synthetic run produces. Left out on purpose.
-          fetch("${opts.budgetlyOrigin}/api/ingest", {
+          fetch("${opts.vitalgateOrigin}/api/ingest", {
             method: "POST",
             headers: {
               "content-type": "application/json",
-              authorization: "Bearer " + process.env.BUDGETLY_TOKEN,
+              authorization: "Bearer " + process.env.VITALGATE_TOKEN,
             },
             body: JSON.stringify({
               githubRepoId: "${opts.githubRepoId}",
@@ -201,27 +201,27 @@ ${forwardedEnv}        run: |
             console.log(JSON.stringify(body, null, 2));
             if (!res.ok) process.exit(1);
             if (body.status === "failing") {
-              console.error("Budgetly: a required performance budget was violated.");
+              console.error("Vitalgate: a required performance budget was violated.");
               process.exit(1);
             }
           });
           '
 
 # Setup checklist:
-# 1. Add a repo secret named BUDGETLY_TOKEN (Settings > Secrets and
-#    variables > Actions) with the token from Budgetly's Settings page.
+# 1. Add a repo secret named VITALGATE_TOKEN (Settings > Secrets and
+#    variables > Actions) with the token from Vitalgate's Settings page.
 # 2. Package manager (${opts.packageManager}${opts.packageManager === "pnpm" ? ` ${opts.pnpmVersion}` : ""}),
 #    serve script ("${opts.startScript}"), and port (${opts.port}) were detected
 #    from this repo at connect time. Wrong? Disconnect and reconnect the repo
-#    on Budgetly (or type an override when connecting) to regenerate this
+#    on Vitalgate (or type an override when connecting) to regenerate this
 #    file — don't edit the values above by hand, they'll be overwritten on
 #    the next reconnect.${
 		opts.envVarNames.length > 0
 			? `
 # 3. Forwards these repo secrets to the started server: ${opts.envVarNames.join(", ")}.
 #    Add/remove which ones by editing "Environment variables" when
-#    reconnecting this repo on Budgetly — the values themselves stay in
-#    this repo's own secrets, Budgetly only stores the names.`
+#    reconnecting this repo on Vitalgate — the values themselves stay in
+#    this repo's own secrets, Vitalgate only stores the names.`
 			: ""
 	}
 `;

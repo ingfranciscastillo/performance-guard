@@ -8,7 +8,7 @@ export interface RepoListItem {
 	id: string;
 	fullName: string;
 	defaultBranch: string;
-	/** Total PRs Budgetly has recorded for this repo. There's no GitHub webhook
+	/** Total PRs Vitalgate has recorded for this repo. There's no GitHub webhook
 	 * ingestion yet, so this is always 0 until that exists — not "open" vs
 	 * "closed", since we don't track PR state at all yet. */
 	prCount: number;

@@ -207,19 +207,29 @@ export type CommitWorkflowResult =
 	| { status: "error"; message: string };
 
 /**
- * First line of every workflow Budgetly generates. Lets commitWorkflowFile
+ * First line of every workflow Vitalgate generates. Lets commitWorkflowFile
  * tell "a file we generated, safe to regenerate on reconnect" apart from "the
  * user wrote their own workflow at this path, don't touch it" — without this
  * marker there'd be no way to support disconnect+reconnect picking up a
  * template change without also risking clobbering a hand-written file.
+ *
+ * Renaming this string (as happened moving off the old "Budgetly" name) means
+ * any repo whose committed file still carries the old marker reads as
+ * "foreign" on the next reconnect and gets left alone instead of updated —
+ * delete that repo's existing workflow file by hand once, after which
+ * reconnecting regenerates it under the new marker normally.
  */
-export const WORKFLOW_MANAGED_MARKER = "# Managed by Budgetly.";
+export const WORKFLOW_MANAGED_MARKER = "# Managed by Vitalgate.";
 
 /**
- * Commits the Budgetly GitHub Action workflow to a repo, at
- * .github/workflows/budgetly.yml, using the user's own OAuth token (this
- * shows up as a real commit authored by them). If a file already exists at
- * that path: overwrites it when it's one Budgetly generated before (carries
+ * Commits the Vitalgate GitHub Action workflow to a repo, at
+ * .github/workflows/budgetly.yml — the path deliberately doesn't track the
+ * product's own name (kept from before the Budgetly → Vitalgate rename): a
+ * changed path would leave the old file behind uncleaned, and GitHub runs
+ * every workflow file it finds, so a stale one would silently keep firing
+ * alongside the new one. Uses the user's own OAuth token (this shows up as a
+ * real commit authored by them). If a file already exists at that path:
+ * overwrites it when it's one Vitalgate generated before (carries
  * WORKFLOW_MANAGED_MARKER — this is how disconnecting and reconnecting a repo
  * picks up template changes), otherwise leaves it alone so a user's own
  * hand-written workflow is never silently clobbered.
@@ -265,8 +275,8 @@ export async function commitWorkflowFile(
 		headers: { ...headers, "content-type": "application/json" },
 		body: JSON.stringify({
 			message: existingSha
-				? "Update Budgetly performance budget workflow"
-				: "Add Budgetly performance budget workflow",
+				? "Update Vitalgate performance budget workflow"
+				: "Add Vitalgate performance budget workflow",
 			content: Buffer.from(content, "utf8").toString("base64"),
 			...(existingSha ? { sha: existingSha } : {}),
 		}),

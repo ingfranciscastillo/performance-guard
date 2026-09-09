@@ -33,9 +33,9 @@ export function CiTokenCard() {
 		<Card className="p-6 max-w-xl">
 			<h2 className="font-semibold">CI token</h2>
 			<p className="mt-1 text-sm text-muted-foreground">
-				Used by the Budgetly GitHub Action to report Lighthouse results. Add it
+				Used by the Vitalgate GitHub Action to report Lighthouse results. Add it
 				as a repo secret named{" "}
-				<code className="font-mono text-xs">BUDGETLY_TOKEN</code>.
+				<code className="font-mono text-xs">VITALGATE_TOKEN</code>.
 			</p>
 
 			{justCreated && (
@@ -75,7 +75,7 @@ export function CiTokenCard() {
 						className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm"
 					>
 						<div>
-							<span className="font-mono">bgtly_…{t.lastFour}</span>
+							<span className="font-mono">vgate_…{t.lastFour}</span>
 							<span className="ml-2 text-xs text-muted-foreground">
 								created {new Date(t.createdAt).toLocaleDateString()}
 								{t.lastUsedAt

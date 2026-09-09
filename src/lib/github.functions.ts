@@ -14,7 +14,7 @@ import {
 	pickServeScript,
 } from "@/lib/github";
 import type { Action, MetricKey, Severity } from "@/lib/mock-data";
-import { budgetlyWorkflowYaml } from "@/lib/workflow-template";
+import { vitalgateWorkflowYaml } from "@/lib/workflow-template";
 
 async function getGithubAccessToken(userId: string): Promise<string> {
 	const [githubAccount] = await db
@@ -116,7 +116,7 @@ const ENV_VAR_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
  * Cleans up user-typed env var names: trims, drops anything that isn't a
  * valid identifier (silently — this only controls which `secrets.<NAME>`
  * references get written into YAML we generate, not user-facing validation),
- * and dedupes. BUDGETLY_TOKEN is already wired in separately, so a repeat
+ * and dedupes. VITALGATE_TOKEN is already wired in separately, so a repeat
  * entry for it would just be a harmless no-op duplicate — still stripped to
  * keep the generated workflow's env block clean.
  */
@@ -128,7 +128,7 @@ function sanitizeEnvVarNames(names: string[] | undefined): string[] {
 		if (
 			!name ||
 			!ENV_VAR_NAME_PATTERN.test(name) ||
-			name === "BUDGETLY_TOKEN"
+			name === "VITALGATE_TOKEN"
 		) {
 			continue;
 		}
@@ -138,13 +138,13 @@ function sanitizeEnvVarNames(names: string[] | undefined): string[] {
 }
 
 /**
- * Where Budgetly is reachable, for the workflow's `fetch(...)` call to our
+ * Where Vitalgate is reachable, for the workflow's `fetch(...)` call to our
  * own ingest endpoint. Derived from the request that's connecting the repo
  * (the browser's Origin header) rather than an env var, so it's automatically
  * correct on localhost, a Vercel preview, and prod without any manual step —
  * and stays correct if the deployment domain ever changes.
  */
-function getBudgetlyOrigin(): string {
+function getVitalgateOrigin(): string {
 	const headers = getRequestHeaders();
 	const origin = headers.get("origin");
 	if (origin) return origin;
@@ -170,7 +170,7 @@ export const connectRepositories = createServerFn({ method: "POST" })
 		}
 
 		const accessToken = await getGithubAccessToken(session.user.id);
-		const budgetlyOrigin = getBudgetlyOrigin();
+		const vitalgateOrigin = getVitalgateOrigin();
 		const presetBudgets = PRESET_BUDGETS[data.preset] ?? [];
 		const envVarNames = sanitizeEnvVarNames(data.envVarNames);
 		let connected = 0;
@@ -273,11 +273,11 @@ export const connectRepositories = createServerFn({ method: "POST" })
 
 			// Best-effort: a repo we can't write the workflow to (e.g. the OAuth
 			// token doesn't cover it, or GitHub API hiccup) still stays connected
-			// in Budgetly — the user can add the workflow by hand.
+			// in Vitalgate — the user can add the workflow by hand.
 			const workflowResult = await commitWorkflowFile(
 				accessToken,
 				repo.fullName,
-				budgetlyWorkflowYaml({
+				vitalgateWorkflowYaml({
 					defaultBranch: repo.defaultBranch,
 					githubRepoId: repo.id,
 					packageManager,
@@ -287,7 +287,7 @@ export const connectRepositories = createServerFn({ method: "POST" })
 					startScript,
 					port,
 					envVarNames,
-					budgetlyOrigin,
+					vitalgateOrigin,
 				}),
 			);
 			if (workflowResult.status === "created") workflowsAdded++;

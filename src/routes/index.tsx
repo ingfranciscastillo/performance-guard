@@ -31,15 +31,15 @@ import { EASE_OUT, staggerContainer, staggerItem } from "@/lib/motion";
 export const Route = createFileRoute("/")({
 	head: () => ({
 		meta: [
-			{ title: "Budgetly: Performance Budgets for every Pull Request" },
+			{ title: "Vitalgate: Performance Budgets for every Pull Request" },
 			{
 				name: "description",
 				content:
-					"Ship faster without shipping regressions. Budgetly runs Lighthouse on every PR, enforces your performance budgets, and blocks merges that break them.",
+					"Ship faster without shipping regressions. Vitalgate runs Lighthouse on every PR, enforces your performance budgets, and blocks merges that break them.",
 			},
 			{
 				property: "og:title",
-				content: "Budgetly: Performance Budgets for every PR",
+				content: "Vitalgate: Performance Budgets for every PR",
 			},
 			{
 				property: "og:description",
@@ -88,7 +88,7 @@ function Hero() {
 						variants={item}
 						className="mt-5 max-w-md text-base leading-relaxed text-muted-foreground sm:text-lg"
 					>
-						Budgetly runs Lighthouse on every pull request, diffs it against
+						Vitalgate runs Lighthouse on every pull request, diffs it against
 						your baseline, and blocks merges that break Core Web Vitals.
 					</motion.p>
 					<motion.div
@@ -291,7 +291,7 @@ function Features() {
 							</p>
 							<div className="mt-5 flex-1 border border-border bg-card">
 								<div className="border-b border-border px-3 py-2 font-mono text-[11px] text-muted-foreground">
-									budgetly[bot] on acme/storefront#1042
+									vitalgate[bot] on acme/storefront#1042
 								</div>
 								<div className="px-3 py-3 text-[13px] leading-relaxed">
 									<span className="font-semibold text-destructive">
@@ -579,7 +579,7 @@ function Faq() {
 	const items = [
 		{
 			q: "How long does setup take?",
-			a: "About 5 minutes. Install the Budgetly GitHub App, pick your repos, and accept the default budgets.",
+			a: "About 5 minutes. Install the Vitalgate GitHub App, pick your repos, and accept the default budgets.",
 		},
 		{
 			q: "Where do the Lighthouse runs happen?",
@@ -631,7 +631,8 @@ function FinalCta() {
 						Your next PR shouldn't slow your site down.
 					</h2>
 					<p className="mx-auto mt-3 max-w-md text-muted-foreground">
-						Install Budgetly in 5 minutes. Free for the first 10 repos, forever.
+						Install Vitalgate in 5 minutes. Free for the first 10 repos,
+						forever.
 					</p>
 					<div className="mt-7 flex flex-wrap justify-center gap-3">
 						<Link to="/login">

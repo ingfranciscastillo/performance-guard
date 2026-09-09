@@ -10,7 +10,7 @@ import { orgReposQueryOptions } from "@/lib/repos.queries";
 export const Route = createFileRoute("/_authenticated/repositories/")({
 	loader: ({ context }) =>
 		context.queryClient.ensureQueryData(orgReposQueryOptions()),
-	head: () => ({ meta: [{ title: "Repositories: Budgetly" }] }),
+	head: () => ({ meta: [{ title: "Repositories: Vitalgate" }] }),
 	component: Repos,
 });
 
