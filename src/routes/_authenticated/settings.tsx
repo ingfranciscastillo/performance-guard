@@ -5,6 +5,8 @@ import {
 	SlackLogoIcon,
 } from "@phosphor-icons/react";
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { AppShell } from "@/components/app-shell";
 import { CiTokenCard } from "@/components/ci-token-card";
 import { Button } from "@/components/ui/button";
@@ -13,11 +15,80 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { authClient } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/_authenticated/settings")({
 	head: () => ({ meta: [{ title: "Settings: Budgetly" }] }),
 	component: Settings,
 });
+
+function OrganizationCard() {
+	const { data: org, isPending } = authClient.useActiveOrganization();
+	const [name, setName] = useState("");
+	const [slug, setSlug] = useState("");
+	const [saving, setSaving] = useState(false);
+
+	// Re-syncs only when the org's actual name/slug change (this page's own
+	// save, or an edit made elsewhere) — not on every refetch of the org
+	// object (e.g. from a member joining on the Team page), which would
+	// otherwise stomp on an in-progress, unsaved edit here.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: see comment above
+	useEffect(() => {
+		if (org) {
+			setName(org.name);
+			setSlug(org.slug);
+		}
+	}, [org?.name, org?.slug]);
+
+	const handleSave = async () => {
+		setSaving(true);
+		const { error } = await authClient.organization.update({
+			data: { name, slug },
+		});
+		setSaving(false);
+		if (error) {
+			toast.error(error.message ?? "Could not update organization");
+			return;
+		}
+		toast.success("Organization updated");
+	};
+
+	return (
+		<Card className="p-6 max-w-xl">
+			<h2 className="font-semibold">Organization</h2>
+			<div className="mt-4 grid gap-4">
+				<div>
+					<Label htmlFor="orgname">Workspace name</Label>
+					<Input
+						id="orgname"
+						value={name}
+						onChange={(e) => setName(e.target.value)}
+						disabled={isPending}
+						className="mt-1.5"
+					/>
+				</div>
+				<div>
+					<Label htmlFor="slug">Slug</Label>
+					<Input
+						id="slug"
+						value={slug}
+						onChange={(e) => setSlug(e.target.value)}
+						disabled={isPending}
+						className="mt-1.5 font-mono"
+					/>
+				</div>
+				<div className="pt-2">
+					<Button
+						onClick={handleSave}
+						disabled={isPending || saving || !name.trim() || !slug.trim()}
+					>
+						{saving ? "Saving…" : "Save changes"}
+					</Button>
+				</div>
+			</div>
+		</Card>
+	);
+}
 
 function Settings() {
 	return (
@@ -31,31 +102,7 @@ function Settings() {
 				</TabsList>
 
 				<TabsContent value="org" className="mt-6 space-y-4">
-					<Card className="p-6 max-w-xl">
-						<h2 className="font-semibold">Organization</h2>
-						<div className="mt-4 grid gap-4">
-							<div>
-								<Label htmlFor="orgname">Workspace name</Label>
-								<Input
-									id="orgname"
-									defaultValue="Acme Inc."
-									className="mt-1.5"
-								/>
-							</div>
-							<div>
-								<Label htmlFor="slug">Slug</Label>
-								<Input
-									id="slug"
-									defaultValue="acme"
-									className="mt-1.5 font-mono"
-								/>
-							</div>
-							<div className="pt-2">
-								<Button>Save changes</Button>
-							</div>
-						</div>
-					</Card>
-
+					<OrganizationCard />
 					<CiTokenCard />
 				</TabsContent>
 
