@@ -104,14 +104,6 @@ export interface AlertItem {
 	createdAt: string;
 }
 
-export interface Member {
-	id: string;
-	name: string;
-	email: string;
-	role: "Owner" | "Admin" | "Developer" | "Viewer";
-	avatarUrl?: string;
-}
-
 function rand(seed: number) {
 	let s = seed;
 	return () => {
@@ -326,19 +318,6 @@ export const ALERTS: AlertItem[] = [
 		message: "Score fell from 91 to 64 on PR #1011",
 		createdAt: "2d ago",
 	},
-];
-
-export const MEMBERS: Member[] = [
-	{ id: "m1", name: "Lucía Romero", email: "lucia@acme.dev", role: "Owner" },
-	{ id: "m2", name: "Marcus Hale", email: "marcus@acme.dev", role: "Admin" },
-	{ id: "m3", name: "Priya Singh", email: "priya@acme.dev", role: "Developer" },
-	{
-		id: "m4",
-		name: "Ngozi Okafor",
-		email: "ngozi@acme.dev",
-		role: "Developer",
-	},
-	{ id: "m5", name: "Kenji Watanabe", email: "kenji@acme.dev", role: "Viewer" },
 ];
 
 export function getRepo(id: string) {
