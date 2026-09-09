@@ -166,6 +166,40 @@ export async function detectPackageManager(
 	}
 }
 
+/**
+ * Whether a repo's yarn.lock is Yarn Berry's format (v2+) rather than
+ * Classic's (v1). The two are mutually incompatible — Classic can't read a
+ * Berry lockfile or vice versa — and only Berry's lockfile carries a
+ * "__metadata:" block, so sniffing the file itself is the reliable way to
+ * tell them apart when the repo doesn't pin a version. Returns false
+ * (Classic) on any fetch/parse failure, matching Corepack's own default.
+ */
+export async function isYarnBerryLockfile(
+	accessToken: string,
+	fullName: string,
+): Promise<boolean> {
+	const res = await fetch(
+		`https://api.github.com/repos/${fullName}/contents/yarn.lock`,
+		{
+			headers: {
+				Authorization: `Bearer ${accessToken}`,
+				Accept: "application/vnd.github+json",
+				"X-GitHub-Api-Version": "2022-11-28",
+			},
+		},
+	);
+	if (!res.ok) return false;
+
+	try {
+		const file = (await res.json()) as { content: string; encoding: string };
+		if (file.encoding !== "base64") return false;
+		const text = Buffer.from(file.content, "base64").toString("utf8");
+		return text.includes("__metadata:");
+	} catch {
+		return false;
+	}
+}
+
 export type CommitWorkflowResult =
 	| { status: "created" }
 	| { status: "updated" }

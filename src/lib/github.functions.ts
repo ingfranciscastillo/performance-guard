@@ -7,8 +7,9 @@ import { ensureSession } from "@/lib/auth.functions";
 import {
 	commitWorkflowFile,
 	detectPackageManager,
-	getPackageJson,
 	type GhRepo,
+	getPackageJson,
+	isYarnBerryLockfile,
 	listGithubRepos,
 	pickServeScript,
 } from "@/lib/github";
@@ -200,6 +201,20 @@ export const connectRepositories = createServerFn({ method: "POST" })
 			const pnpmVersionMatch = pkg?.packageManager?.match(/^pnpm@(.+)$/);
 			const pnpmVersion = pnpmVersionMatch?.[1] ?? "latest";
 
+			// Yarn Classic (v1) and Berry (v2+) are mutually incompatible and
+			// Corepack's un-pinned fallback is always Classic — wrong whenever the
+			// repo actually uses Berry. Trust an explicit pin when there is one
+			// (matches whatever generated the lockfile); otherwise sniff the
+			// lockfile itself, the only reliable signal when nothing is pinned.
+			const yarnVersionMatch = pkg?.packageManager?.match(/^yarn@(.+)$/);
+			const yarnVersion = yarnVersionMatch?.[1];
+			const yarnIsBerry =
+				packageManager === "yarn"
+					? yarnVersion
+						? !yarnVersion.startsWith("1.")
+						: await isYarnBerryLockfile(accessToken, repo.fullName)
+					: false;
+
 			// Best-effort: a repo we can't write the workflow to (e.g. the OAuth
 			// token doesn't cover it, or GitHub API hiccup) still stays connected
 			// in Budgetly — the user can add the workflow by hand.
@@ -211,6 +226,8 @@ export const connectRepositories = createServerFn({ method: "POST" })
 					githubRepoId: repo.id,
 					packageManager,
 					pnpmVersion,
+					yarnIsBerry,
+					yarnVersion,
 					startScript,
 					port,
 					budgetlyOrigin,
