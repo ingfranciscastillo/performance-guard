@@ -25,6 +25,8 @@ import { Route as AuthenticatedRepositoriesRepoIdRouteImport } from './routes/_a
 import { Route as AuthenticatedRepositoriesNewRouteImport } from './routes/_authenticated/repositories/new'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiCronWeeklyDigestRouteImport } from './routes/api/cron/weekly-digest'
+import { Route as ApiIntegrationsDiscordCallbackRouteImport } from './routes/api/integrations/discord/callback'
+import { Route as ApiIntegrationsSlackCallbackRouteImport } from './routes/api/integrations/slack/callback'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -108,6 +110,18 @@ const ApiCronWeeklyDigestRoute = ApiCronWeeklyDigestRouteImport.update({
   path: '/api/cron/weekly-digest',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiIntegrationsDiscordCallbackRoute =
+  ApiIntegrationsDiscordCallbackRouteImport.update({
+    id: '/api/integrations/discord/callback',
+    path: '/api/integrations/discord/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiIntegrationsSlackCallbackRoute =
+  ApiIntegrationsSlackCallbackRouteImport.update({
+    id: '/api/integrations/slack/callback',
+    path: '/api/integrations/slack/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -125,6 +139,8 @@ export interface FileRoutesByFullPath {
   '/api/cron/weekly-digest': typeof ApiCronWeeklyDigestRoute
   '/pulls/': typeof AuthenticatedPullsIndexRoute
   '/repositories/': typeof AuthenticatedRepositoriesIndexRoute
+  '/api/integrations/discord/callback': typeof ApiIntegrationsDiscordCallbackRoute
+  '/api/integrations/slack/callback': typeof ApiIntegrationsSlackCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -142,6 +158,8 @@ export interface FileRoutesByTo {
   '/api/cron/weekly-digest': typeof ApiCronWeeklyDigestRoute
   '/pulls': typeof AuthenticatedPullsIndexRoute
   '/repositories': typeof AuthenticatedRepositoriesIndexRoute
+  '/api/integrations/discord/callback': typeof ApiIntegrationsDiscordCallbackRoute
+  '/api/integrations/slack/callback': typeof ApiIntegrationsSlackCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -161,6 +179,8 @@ export interface FileRoutesById {
   '/api/cron/weekly-digest': typeof ApiCronWeeklyDigestRoute
   '/_authenticated/pulls/': typeof AuthenticatedPullsIndexRoute
   '/_authenticated/repositories/': typeof AuthenticatedRepositoriesIndexRoute
+  '/api/integrations/discord/callback': typeof ApiIntegrationsDiscordCallbackRoute
+  '/api/integrations/slack/callback': typeof ApiIntegrationsSlackCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -180,6 +200,8 @@ export interface FileRouteTypes {
     | '/api/cron/weekly-digest'
     | '/pulls/'
     | '/repositories/'
+    | '/api/integrations/discord/callback'
+    | '/api/integrations/slack/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -197,6 +219,8 @@ export interface FileRouteTypes {
     | '/api/cron/weekly-digest'
     | '/pulls'
     | '/repositories'
+    | '/api/integrations/discord/callback'
+    | '/api/integrations/slack/callback'
   id:
     | '__root__'
     | '/'
@@ -215,6 +239,8 @@ export interface FileRouteTypes {
     | '/api/cron/weekly-digest'
     | '/_authenticated/pulls/'
     | '/_authenticated/repositories/'
+    | '/api/integrations/discord/callback'
+    | '/api/integrations/slack/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -225,6 +251,8 @@ export interface RootRouteChildren {
   ApiIngestRoute: typeof ApiIngestRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiCronWeeklyDigestRoute: typeof ApiCronWeeklyDigestRoute
+  ApiIntegrationsDiscordCallbackRoute: typeof ApiIntegrationsDiscordCallbackRoute
+  ApiIntegrationsSlackCallbackRoute: typeof ApiIntegrationsSlackCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -341,6 +369,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCronWeeklyDigestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/integrations/discord/callback': {
+      id: '/api/integrations/discord/callback'
+      path: '/api/integrations/discord/callback'
+      fullPath: '/api/integrations/discord/callback'
+      preLoaderRoute: typeof ApiIntegrationsDiscordCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/integrations/slack/callback': {
+      id: '/api/integrations/slack/callback'
+      path: '/api/integrations/slack/callback'
+      fullPath: '/api/integrations/slack/callback'
+      preLoaderRoute: typeof ApiIntegrationsSlackCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -380,6 +422,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiIngestRoute: ApiIngestRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiCronWeeklyDigestRoute: ApiCronWeeklyDigestRoute,
+  ApiIntegrationsDiscordCallbackRoute: ApiIntegrationsDiscordCallbackRoute,
+  ApiIntegrationsSlackCallbackRoute: ApiIntegrationsSlackCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

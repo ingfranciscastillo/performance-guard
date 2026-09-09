@@ -5,7 +5,8 @@ import {
 	SlackLogoIcon,
 } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import type { ComponentType } from "react";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { AppShell } from "@/components/app-shell";
@@ -17,6 +18,12 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { authClient } from "@/lib/auth-client";
+import {
+	disconnectIntegration,
+	getIntegrationAuthorizeUrl,
+} from "@/lib/integrations.functions";
+import { integrationsOverviewQueryOptions } from "@/lib/integrations.queries";
+import type { IntegrationProvider } from "@/lib/mock-data";
 import { setNotificationPref } from "@/lib/notification-prefs.functions";
 import { notificationPrefsQueryOptions } from "@/lib/notification-prefs.queries";
 
@@ -139,6 +146,195 @@ function NotificationsCard() {
 	);
 }
 
+function IntegrationCardShell({
+	icon: Icon,
+	name,
+	connected,
+	desc,
+	children,
+}: {
+	icon: ComponentType<{ className?: string }>;
+	name: string;
+	connected: boolean;
+	desc: string;
+	children: React.ReactNode;
+}) {
+	return (
+		<Card className="p-5">
+			<div className="flex items-start gap-3">
+				<div className="h-9 w-9 rounded-md bg-muted grid place-items-center">
+					<Icon className="h-4 w-4" />
+				</div>
+				<div className="flex-1">
+					<div className="flex items-center gap-2">
+						<span className="font-medium">{name}</span>
+						{connected && (
+							<span className="rounded-full bg-success/15 text-success px-2 py-0.5 text-[10px]">
+								Connected
+							</span>
+						)}
+					</div>
+					<p className="text-xs text-muted-foreground mt-1">{desc}</p>
+				</div>
+			</div>
+			<div className="mt-4">{children}</div>
+		</Card>
+	);
+}
+
+function IntegrationsTab() {
+	const { data, isPending } = useQuery(integrationsOverviewQueryOptions());
+	const queryClient = useQueryClient();
+	const [connecting, setConnecting] = useState<IntegrationProvider | null>(
+		null,
+	);
+
+	// The OAuth callback redirects back here with ?integration=&status=&reason=
+	// — surface that once, then strip it so a refresh doesn't re-toast it.
+	useEffect(() => {
+		const params = new URLSearchParams(window.location.search);
+		const integration = params.get("integration");
+		const status = params.get("status");
+		if (!integration || !status) return;
+
+		const providerName = integration === "slack" ? "Slack" : "Discord";
+		if (status === "connected") {
+			toast.success(`${providerName} connected`);
+		} else {
+			const reason = params.get("reason");
+			toast.error(
+				`Could not connect ${providerName}${reason ? `: ${reason}` : ""}`,
+			);
+		}
+		queryClient.invalidateQueries({ queryKey: ["integrations-overview"] });
+		window.history.replaceState({}, "", window.location.pathname);
+	}, [queryClient]);
+
+	const disconnect = useMutation({
+		mutationFn: disconnectIntegration,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["integrations-overview"] });
+			toast.success("Disconnected");
+		},
+		onError: () => toast.error("Could not disconnect"),
+	});
+
+	const connect = async (provider: IntegrationProvider) => {
+		setConnecting(provider);
+		try {
+			const url = await getIntegrationAuthorizeUrl({ data: provider });
+			window.location.href = url;
+		} catch (err) {
+			toast.error(
+				err instanceof Error ? err.message : "Could not start connection",
+			);
+			setConnecting(null);
+		}
+	};
+
+	if (isPending || !data) {
+		return <p className="mt-6 text-sm text-muted-foreground">Loading…</p>;
+	}
+
+	return (
+		<div className="mt-6 grid sm:grid-cols-2 gap-4 max-w-3xl">
+			<IntegrationCardShell
+				icon={GithubLogoIcon}
+				name="GitHub"
+				connected={data.github.connected}
+				desc={
+					data.github.connected
+						? `${data.github.repoCount} repo${data.github.repoCount === 1 ? "" : "s"} connected`
+						: "Not connected"
+				}
+			>
+				<Link to="/repositories">
+					<Button variant="outline" size="sm">
+						Manage
+					</Button>
+				</Link>
+			</IntegrationCardShell>
+
+			<IntegrationCardShell
+				icon={SlackLogoIcon}
+				name="Slack"
+				connected={data.slack.connected}
+				desc={
+					data.slack.connected
+						? (data.slack.label ?? "Connected")
+						: "Not connected"
+				}
+			>
+				{data.slack.connected ? (
+					<Button
+						variant="outline"
+						size="sm"
+						disabled={disconnect.isPending}
+						onClick={() => disconnect.mutate({ data: "slack" })}
+					>
+						Disconnect
+					</Button>
+				) : (
+					<Button
+						size="sm"
+						disabled={connecting === "slack"}
+						onClick={() => connect("slack")}
+					>
+						{connecting === "slack" ? "Connecting…" : "Connect"}
+					</Button>
+				)}
+			</IntegrationCardShell>
+
+			<IntegrationCardShell
+				icon={DiscordLogoIcon}
+				name="Discord"
+				connected={data.discord.connected}
+				desc={
+					data.discord.connected
+						? (data.discord.label ?? "Connected")
+						: "Not connected"
+				}
+			>
+				{data.discord.connected ? (
+					<Button
+						variant="outline"
+						size="sm"
+						disabled={disconnect.isPending}
+						onClick={() => disconnect.mutate({ data: "discord" })}
+					>
+						Disconnect
+					</Button>
+				) : (
+					<Button
+						size="sm"
+						disabled={connecting === "discord"}
+						onClick={() => connect("discord")}
+					>
+						{connecting === "discord" ? "Connecting…" : "Connect"}
+					</Button>
+				)}
+			</IntegrationCardShell>
+
+			<IntegrationCardShell
+				icon={EnvelopeSimpleIcon}
+				name="Email digest"
+				connected={data.emailDigest.enabled}
+				desc={
+					data.emailDigest.enabled
+						? "Weekly, to every org member"
+						: "Off — enable under Alert rules"
+				}
+			>
+				<Link to="/alerts">
+					<Button variant="outline" size="sm">
+						Manage
+					</Button>
+				</Link>
+			</IntegrationCardShell>
+		</div>
+	);
+}
+
 function Settings() {
 	return (
 		<AppShell title="Settings">
@@ -155,60 +351,8 @@ function Settings() {
 					<CiTokenCard />
 				</TabsContent>
 
-				<TabsContent
-					value="integrations"
-					className="mt-6 grid sm:grid-cols-2 gap-4 max-w-3xl"
-				>
-					{[
-						{
-							name: "GitHub",
-							desc: "Connected as acme org, 4 repos",
-							icon: GithubLogoIcon,
-							connected: true,
-						},
-						{
-							name: "Slack",
-							desc: "#perf-alerts, 12 routes",
-							icon: SlackLogoIcon,
-							connected: true,
-						},
-						{
-							name: "Discord",
-							desc: "Not connected",
-							icon: DiscordLogoIcon,
-							connected: false,
-						},
-						{
-							name: "Email digest",
-							desc: "Weekly to engineering@acme.dev",
-							icon: EnvelopeSimpleIcon,
-							connected: true,
-						},
-					].map((i) => (
-						<Card key={i.name} className="p-5">
-							<div className="flex items-start gap-3">
-								<div className="h-9 w-9 rounded-md bg-muted grid place-items-center">
-									<i.icon className="h-4 w-4" />
-								</div>
-								<div className="flex-1">
-									<div className="flex items-center gap-2">
-										<span className="font-medium">{i.name}</span>
-										{i.connected && (
-											<span className="rounded-full bg-success/15 text-success px-2 py-0.5 text-[10px]">
-												Connected
-											</span>
-										)}
-									</div>
-									<p className="text-xs text-muted-foreground mt-1">{i.desc}</p>
-								</div>
-							</div>
-							<div className="mt-4">
-								<Button variant={i.connected ? "outline" : "default"} size="sm">
-									{i.connected ? "Manage" : "Connect"}
-								</Button>
-							</div>
-						</Card>
-					))}
+				<TabsContent value="integrations">
+					<IntegrationsTab />
 				</TabsContent>
 
 				<TabsContent value="billing" className="mt-6">

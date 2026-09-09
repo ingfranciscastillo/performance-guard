@@ -14,6 +14,7 @@ import type {
 	AlertChannel,
 	AlertLevel,
 	AlertRuleKey,
+	IntegrationProvider,
 	MetricKey,
 	NotificationPrefKey,
 	PrStatus,
@@ -230,6 +231,42 @@ export const notificationPrefsRelations = relations(
 	}),
 );
 
+/**
+ * One Slack or Discord incoming-webhook connection per org per provider,
+ * from the OAuth "Add to Slack" / Discord webhook.incoming flow — not
+ * better-auth's account table, which is per-user identity, not an org-level
+ * service connection. The webhook URL is sensitive (anyone holding it can
+ * post to that channel), so it's stored encrypted, never plaintext.
+ */
+export const integrations = pgTable(
+	"integrations",
+	{
+		id: id(),
+		organizationId: text("organization_id")
+			.notNull()
+			.references(() => organization.id, { onDelete: "cascade" }),
+		provider: text("provider").notNull().$type<IntegrationProvider>(),
+		/** Workspace/channel name for display, e.g. "Acme Inc · #perf-alerts". */
+		label: text("label").notNull(),
+		/** AES-256-GCM ciphertext, "iv.authTag.ciphertext" (each base64) — see crypto.server.ts. */
+		encryptedWebhookUrl: text("encrypted_webhook_url").notNull(),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+	},
+	(t) => [
+		uniqueIndex("integrations_organization_id_provider_unique").on(
+			t.organizationId,
+			t.provider,
+		),
+	],
+);
+
+export const integrationsRelations = relations(integrations, ({ one }) => ({
+	organization: one(organization, {
+		fields: [integrations.organizationId],
+		references: [organization.id],
+	}),
+}));
+
 export type NewRepo = typeof repos.$inferInsert;
 export type RepoRow = typeof repos.$inferSelect;
 export type NewBudget = typeof budgets.$inferInsert;
@@ -244,3 +281,5 @@ export type NewAlertRule = typeof alertRules.$inferInsert;
 export type AlertRuleRow = typeof alertRules.$inferSelect;
 export type NewNotificationPref = typeof notificationPrefs.$inferInsert;
 export type NotificationPrefRow = typeof notificationPrefs.$inferSelect;
+export type NewIntegration = typeof integrations.$inferInsert;
+export type IntegrationRow = typeof integrations.$inferSelect;
