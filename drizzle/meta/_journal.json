@@ -43,6 +43,13 @@
       "when": 1788985057274,
       "tag": "0005_peaceful_puck",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1788988700798,
+      "tag": "0006_lame_plazm",
+      "breakpoints": true
     }
   ]
 }

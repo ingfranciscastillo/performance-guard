@@ -98,6 +98,11 @@ export type AlertRuleKey =
 	| "regression_3day"
 	| "score_below_80"
 	| "weekly_digest";
+export type NotificationPrefKey =
+	| "critical_alerts"
+	| "warning_alerts"
+	| "daily_digest"
+	| "weekly_summary";
 
 export interface AlertItem {
 	id: string;

@@ -15,10 +15,11 @@ import type {
 	AlertLevel,
 	AlertRuleKey,
 	MetricKey,
+	NotificationPrefKey,
 	PrStatus,
 	Severity,
 } from "@/lib/mock-data";
-import { organization } from "./auth-schema";
+import { organization, user } from "./auth-schema";
 
 function id() {
 	return text("id")
@@ -199,6 +200,36 @@ export const alertRulesRelations = relations(alertRules, ({ one }) => ({
 	}),
 }));
 
+/**
+ * Per-user on/off state for a fixed set of email notification preferences
+ * (see NotificationPrefKey) — global across every org the user belongs to,
+ * not org-scoped like alertRules. Same "missing row = default" reasoning.
+ */
+export const notificationPrefs = pgTable(
+	"notification_prefs",
+	{
+		id: id(),
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		pref: text("pref").notNull().$type<NotificationPrefKey>(),
+		enabled: boolean("enabled").notNull(),
+	},
+	(t) => [
+		uniqueIndex("notification_prefs_user_id_pref_unique").on(t.userId, t.pref),
+	],
+);
+
+export const notificationPrefsRelations = relations(
+	notificationPrefs,
+	({ one }) => ({
+		user: one(user, {
+			fields: [notificationPrefs.userId],
+			references: [user.id],
+		}),
+	}),
+);
+
 export type NewRepo = typeof repos.$inferInsert;
 export type RepoRow = typeof repos.$inferSelect;
 export type NewBudget = typeof budgets.$inferInsert;
@@ -211,3 +242,5 @@ export type NewOrgToken = typeof orgTokens.$inferInsert;
 export type OrgTokenRow = typeof orgTokens.$inferSelect;
 export type NewAlertRule = typeof alertRules.$inferInsert;
 export type AlertRuleRow = typeof alertRules.$inferSelect;
+export type NewNotificationPref = typeof notificationPrefs.$inferInsert;
+export type NotificationPrefRow = typeof notificationPrefs.$inferSelect;

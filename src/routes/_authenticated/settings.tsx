@@ -4,6 +4,7 @@ import {
 	GithubLogoIcon,
 	SlackLogoIcon,
 } from "@phosphor-icons/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -16,6 +17,8 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { authClient } from "@/lib/auth-client";
+import { setNotificationPref } from "@/lib/notification-prefs.functions";
+import { notificationPrefsQueryOptions } from "@/lib/notification-prefs.queries";
 
 export const Route = createFileRoute("/_authenticated/settings")({
 	head: () => ({ meta: [{ title: "Settings: Budgetly" }] }),
@@ -86,6 +89,52 @@ function OrganizationCard() {
 					</Button>
 				</div>
 			</div>
+		</Card>
+	);
+}
+
+function NotificationsCard() {
+	const { data: prefs, isPending } = useQuery(notificationPrefsQueryOptions());
+	const queryClient = useQueryClient();
+
+	const togglePref = useMutation({
+		mutationFn: setNotificationPref,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["notification-prefs"] });
+		},
+		onError: () => toast.error("Could not update the preference"),
+	});
+
+	return (
+		<Card className="p-6 max-w-xl">
+			<h2 className="font-semibold">Notification preferences</h2>
+			<p className="mt-1 text-xs text-muted-foreground">
+				Personal — these don't change what the org's Alert rules fire, only
+				whether you're emailed about it.
+			</p>
+			{isPending ? (
+				<p className="mt-4 text-sm text-muted-foreground">Loading…</p>
+			) : (
+				<ul className="mt-4 divide-y divide-border">
+					{prefs?.map((p) => (
+						<li key={p.key} className="flex items-center justify-between py-3">
+							<div>
+								<span className="text-sm">{p.label}</span>
+								<p className="text-xs text-muted-foreground">{p.desc}</p>
+							</div>
+							<Switch
+								checked={p.enabled}
+								disabled={togglePref.isPending}
+								onCheckedChange={(enabled) =>
+									togglePref.mutate({
+										data: { pref: p.key, enabled: Boolean(enabled) },
+									})
+								}
+							/>
+						</li>
+					))}
+				</ul>
+			)}
 		</Card>
 	);
 }
@@ -205,25 +254,7 @@ function Settings() {
 				</TabsContent>
 
 				<TabsContent value="notifications" className="mt-6">
-					<Card className="p-6 max-w-xl">
-						<h2 className="font-semibold">Notification preferences</h2>
-						<ul className="mt-4 divide-y divide-border">
-							{[
-								"Email me on critical alerts",
-								"Email me on warnings",
-								"Daily PR digest",
-								"Weekly performance summary",
-							].map((label, i) => (
-								<li
-									key={label}
-									className="flex items-center justify-between py-3"
-								>
-									<span className="text-sm">{label}</span>
-									<Switch defaultChecked={i < 2} />
-								</li>
-							))}
-						</ul>
-					</Card>
+					<NotificationsCard />
 				</TabsContent>
 			</Tabs>
 		</AppShell>
