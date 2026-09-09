@@ -3,7 +3,13 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { account, budgets, repos } from "@/db/schema";
 import { ensureSession } from "@/lib/auth.functions";
-import { commitWorkflowFile, type GhRepo, listGithubRepos } from "@/lib/github";
+import {
+	commitWorkflowFile,
+	getPackageJsonScripts,
+	type GhRepo,
+	listGithubRepos,
+	pickServeScript,
+} from "@/lib/github";
 import type { Action, MetricKey, Severity } from "@/lib/mock-data";
 import { budgetlyWorkflowYaml } from "@/lib/workflow-template";
 
@@ -80,7 +86,18 @@ interface ConnectRepositoriesInput {
 	preset: string;
 	/** When false, downgrade every "block" action to "comment" (no merge gating). */
 	branchProtect: boolean;
+	/**
+	 * User-provided override for the workflow's serve command/port, applied to
+	 * every repo in this batch. When omitted, each repo's package.json is
+	 * inspected instead (see pickServeScript) — falls back to a placeholder
+	 * the user must edit by hand if nothing can be detected.
+	 */
+	startScript?: string;
+	port?: number;
 }
+
+const DEFAULT_PORT = 3000;
+const FALLBACK_START_SCRIPT = "start"; // TODO: replace me — no start/preview/serve script was found
 
 export const connectRepositories = createServerFn({ method: "POST" })
 	.validator((data: ConnectRepositoriesInput) => data)
@@ -134,6 +151,15 @@ export const connectRepositories = createServerFn({ method: "POST" })
 				);
 			}
 
+			// A user-typed override applies to every repo in this batch; otherwise
+			// detect per-repo from package.json (each repo may serve differently).
+			let startScript = data.startScript?.trim();
+			if (!startScript) {
+				const scripts = await getPackageJsonScripts(accessToken, repo.fullName);
+				startScript = pickServeScript(scripts) ?? FALLBACK_START_SCRIPT;
+			}
+			const port = data.port ?? DEFAULT_PORT;
+
 			// Best-effort: a repo we can't write the workflow to (e.g. the OAuth
 			// token doesn't cover it, or GitHub API hiccup) still stays connected
 			// in Budgetly — the user can add the workflow by hand.
@@ -143,6 +169,8 @@ export const connectRepositories = createServerFn({ method: "POST" })
 				budgetlyWorkflowYaml({
 					defaultBranch: repo.defaultBranch,
 					githubRepoId: repo.id,
+					startScript,
+					port,
 				}),
 			);
 			if (workflowResult.status === "created") workflowsAdded++;

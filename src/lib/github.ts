@@ -67,6 +67,58 @@ export async function listGithubRepos(accessToken: string): Promise<GhRepo[]> {
 	return repos;
 }
 
+/**
+ * Reads package.json's "scripts" from a repo's default branch, to pick a
+ * real serve command instead of guessing "start" for everyone. Returns null
+ * if there's no package.json at the repo root, or it doesn't parse — not
+ * every project is a root-level Node package (monorepos, non-JS projects),
+ * and the caller falls back to a placeholder in that case.
+ */
+export async function getPackageJsonScripts(
+	accessToken: string,
+	fullName: string,
+): Promise<Record<string, string> | null> {
+	const res = await fetch(
+		`https://api.github.com/repos/${fullName}/contents/package.json`,
+		{
+			headers: {
+				Authorization: `Bearer ${accessToken}`,
+				Accept: "application/vnd.github+json",
+				"X-GitHub-Api-Version": "2022-11-28",
+			},
+		},
+	);
+	if (!res.ok) return null;
+
+	try {
+		const file = (await res.json()) as { content: string; encoding: string };
+		if (file.encoding !== "base64") return null;
+		const pkg = JSON.parse(
+			Buffer.from(file.content, "base64").toString("utf8"),
+		);
+		return pkg && typeof pkg.scripts === "object" ? pkg.scripts : null;
+	} catch {
+		return null;
+	}
+}
+
+/**
+ * Picks which package.json script serves a production build, in the order a
+ * user would actually reach for one: "start" (the Node/Next.js convention),
+ * then "preview" (Vite/Astro's equivalent), then "serve". Returns null if
+ * scripts don't exist or none of these are defined — the caller must fall
+ * back to a placeholder the user fills in by hand.
+ */
+export function pickServeScript(
+	scripts: Record<string, string> | null,
+): string | null {
+	if (!scripts) return null;
+	for (const candidate of ["start", "preview", "serve"]) {
+		if (scripts[candidate]) return candidate;
+	}
+	return null;
+}
+
 export type CommitWorkflowResult =
 	| { status: "created" }
 	| { status: "already-exists" }

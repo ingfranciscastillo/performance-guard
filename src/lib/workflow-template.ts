@@ -1,18 +1,27 @@
 /**
  * Generic GitHub Action template committed to a repo when it's connected.
- * Build/serve steps are placeholders — Budgetly doesn't know how a given
- * project builds itself, so the user fills that part in. The repo id, default
- * branch, and ingest payload wiring are filled in since we already know them.
+ * The serve command and port are filled in from either an auto-detected
+ * package.json script or a value the user typed when connecting — never
+ * hardcoded, since every project's build/serve setup differs. The repo id,
+ * default branch, and ingest payload wiring are filled in since we already
+ * know them.
  */
 export function budgetlyWorkflowYaml(opts: {
 	defaultBranch: string;
 	githubRepoId: string;
+	/** package.json script name that serves the production build (e.g. "start", "preview"). */
+	startScript: string;
+	/** Port the serve script listens on once started. */
+	port: number;
 }): string {
 	return `name: Budgetly Performance Budgets
 
 on:
   pull_request:
     branches: ["${opts.defaultBranch}"]
+
+env:
+  BUDGETLY_PORT: ${opts.port}
 
 jobs:
   lighthouse:
@@ -36,10 +45,6 @@ jobs:
           else echo "manager=npm" >> "$GITHUB_OUTPUT"
           fi
 
-      # TODO: build/start scripts assume "build" and "start" npm scripts exist
-      # (package.json's "scripts" field) and that the app serves on port 3000
-      # once started. Adjust the port here and in the Lighthouse step below
-      # if this project uses a different one.
       - name: Install dependencies
         run: |
           case "\${{ steps.pm.outputs.manager }}" in
@@ -59,14 +64,14 @@ jobs:
       - name: Start server in background
         run: |
           case "\${{ steps.pm.outputs.manager }}" in
-            pnpm) pnpm run start & ;;
-            yarn) yarn start & ;;
-            npm) npm run start & ;;
+            pnpm) pnpm run ${opts.startScript} & ;;
+            yarn) yarn ${opts.startScript} & ;;
+            npm) npm run ${opts.startScript} & ;;
           esac
-          npx wait-on http://localhost:3000
+          npx wait-on http://localhost:\${{ env.BUDGETLY_PORT }}
 
       - name: Run Lighthouse
-        run: npx lighthouse http://localhost:3000 --output=json --output-path=./lighthouse.json --chrome-flags="--headless --no-sandbox"
+        run: npx lighthouse http://localhost:\${{ env.BUDGETLY_PORT }} --output=json --output-path=./lighthouse.json --chrome-flags="--headless --no-sandbox"
 
       - name: Report to Budgetly
         env:
@@ -119,7 +124,9 @@ jobs:
 # 2. Add a repo secret named BUDGETLY_TOKEN (Settings > Secrets and
 #    variables > Actions) with the token from Budgetly's Settings page.
 # 3. Package manager (pnpm/yarn/npm) is auto-detected from the lockfile.
-#    Adjust the "build"/"start" script names or the port (3000) above if
-#    this project's package.json scripts or dev server differ.
+#    The serve script ("${opts.startScript}") and port (${opts.port}) were
+#    detected from this repo's package.json at connect time — change the
+#    "env: BUDGETLY_PORT" value above, or the script name in the "Start
+#    server in background" step, if they're wrong or change later.
 `;
 }

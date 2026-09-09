@@ -86,6 +86,8 @@ function ConnectRepo() {
 	const [preset, setPreset] = useState("default");
 	const [branchProtect, setBranchProtect] = useState(true);
 	const [postComments, setPostComments] = useState(true);
+	const [startScript, setStartScript] = useState("");
+	const [port, setPort] = useState("");
 
 	const orgs = useMemo(
 		() => Array.from(new Set(available.map((r) => r.org))),
@@ -147,6 +149,8 @@ function ConnectRepo() {
 				})),
 				preset,
 				branchProtect,
+				startScript: startScript.trim() || undefined,
+				port: port.trim() ? Number(port) : undefined,
 			},
 		});
 	};
@@ -382,6 +386,42 @@ function ConnectRepo() {
 												Inline metric diffs vs baseline.
 											</p>
 										</div>
+									</div>
+								</div>
+							</Card>
+
+							<Card className="p-5">
+								<h2 className="font-semibold text-sm">Serve command</h2>
+								<p className="mt-1 text-xs text-muted-foreground">
+									Budgetly detects a "start"/"preview"/"serve" script from each
+									repo's package.json automatically. Set these to override it
+									for every repository selected above.
+								</p>
+								<div className="mt-4 space-y-3">
+									<div className="space-y-1.5">
+										<Label htmlFor="start-script" className="text-sm">
+											Start command
+										</Label>
+										<Input
+											id="start-script"
+											placeholder="auto-detected (e.g. start, preview)"
+											value={startScript}
+											onChange={(e) => setStartScript(e.target.value)}
+											className="font-mono text-xs"
+										/>
+									</div>
+									<div className="space-y-1.5">
+										<Label htmlFor="port" className="text-sm">
+											Port
+										</Label>
+										<Input
+											id="port"
+											type="number"
+											placeholder="3000"
+											value={port}
+											onChange={(e) => setPort(e.target.value)}
+											className="font-mono text-xs"
+										/>
 									</div>
 								</div>
 							</Card>
