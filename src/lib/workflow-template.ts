@@ -1,44 +1,87 @@
 import type { PackageManager } from "@/lib/github";
 import { WORKFLOW_MANAGED_MARKER } from "@/lib/github";
 
-/**
- * Per-manager setup/install YAML block. Deliberately no hardcoded tool
- * versions: pnpm/setup reads the exact pnpm version from the repo's own
- * package.json ("packageManager" field) so it always matches whatever
- * generated the lockfile, and "lts/*" tracks whichever Node LTS is current
- * instead of going stale the moment a specific number is deprecated.
- */
-function setupAndInstall(manager: PackageManager, pnpmVersion: string): string {
+function majorVersion(version: string): number | null {
+	const match = version.match(/\d+/);
+	return match ? Number(match[0]) : null;
+}
+
+function yamlQuote(value: string): string {
+	return `'${value.replaceAll("'", "''")}'`;
+}
+
+function shellQuote(value: string): string {
+	return `'${value.replaceAll("'", "'\\''")}'`;
+}
+
+function jsString(value: string): string {
+	return JSON.stringify(value);
+}
+
+function setupAndInstall(
+	manager: PackageManager,
+	nodeVersion: string,
+	pnpmVersion: string,
+): string {
 	switch (manager) {
-		case "pnpm":
-			// pnpm/setup installs Node + pnpm and runs `pnpm install` itself, so
-			// there's no separate "Install dependencies" step to keep in sync.
-			// No explicit frozen-lockfile flag needed: pnpm already defaults to
-			// --frozen-lockfile behavior whenever the CI env var is set, which
-			// GitHub Actions always sets.
-			//
-			// `version` is required — pnpm/setup only reads it from package.json's
-			// "packageManager" field, and errors ("No pnpm version is specified")
-			// on any repo that doesn't declare one, which most don't.
-			return `      - uses: pnpm/setup@v2
+		case "pnpm": {
+			const major = majorVersion(pnpmVersion);
+
+			if (major === null || major >= 11) {
+				return `      - name: Setup pnpm and Node
+        uses: pnpm/setup@v2
         with:
-          version: ${pnpmVersion}
-          cache: true`;
+          version: ${yamlQuote(pnpmVersion)}
+          runtime: node@${nodeVersion}
+          cache: true
+          require-lockfile: true`;
+			}
+
+			return `      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: ${yamlQuote(pnpmVersion)}
+          cache: true
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${yamlQuote(nodeVersion)}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile`;
+		}
+
 		case "yarn":
-			return `      - uses: actions/setup-node@v7
+			return `      - name: Setup Node
+        uses: actions/setup-node@v7
         with:
-          node-version: lts/*
+          node-version: ${yamlQuote(nodeVersion)}
           cache: yarn
 
       - name: Enable Corepack
         run: corepack enable
 
       - name: Install dependencies
-        run: yarn install --immutable`;
+        run: |
+          YARN_VERSION="$(yarn --version)"
+
+          case "$YARN_VERSION" in
+            0.*|1.*)
+              yarn install --frozen-lockfile
+              ;;
+            *)
+              yarn install --immutable
+              ;;
+          esac`;
+
 		case "npm":
-			return `      - uses: actions/setup-node@v7
+			return `      - name: Setup Node
+        uses: actions/setup-node@v7
         with:
-          node-version: lts/*
+          node-version: ${yamlQuote(nodeVersion)}
           cache: npm
 
       - name: Install dependencies
@@ -47,50 +90,44 @@ function setupAndInstall(manager: PackageManager, pnpmVersion: string): string {
 }
 
 function runScript(manager: PackageManager, script: string): string {
+	const quotedScript = shellQuote(script);
+
 	switch (manager) {
 		case "pnpm":
-			return `pnpm run ${script}`;
+			return `pnpm run ${quotedScript}`;
 		case "yarn":
-			return `yarn ${script}`;
+			return `yarn ${quotedScript}`;
 		case "npm":
-			return `npm run ${script}`;
+			return `npm run ${quotedScript}`;
 	}
 }
 
-/**
- * GitHub Action template committed to a repo when it's connected. Every
- * value below — package manager, its version, the serve script, the port,
- * and where to report results — is resolved once at connect time from the
- * repo's own files and the request that connected it, instead of guessed
- * defaults baked into the template. Re-running "detect" only happens by
- * disconnecting and reconnecting the repo on Budgetly, which regenerates
- * this whole file (see WORKFLOW_MANAGED_MARKER).
- */
 export function budgetlyWorkflowYaml(opts: {
 	defaultBranch: string;
 	githubRepoId: string;
 	packageManager: PackageManager;
-	/**
-	 * Exact pnpm version to install (ignored for yarn/npm). Pass the version
-	 * from package.json's "packageManager" field when the repo declares one, to
-	 * match whatever generated its lockfile — otherwise "latest" (an npm
-	 * dist-tag pnpm/setup resolves itself, so it stays current with no
-	 * hardcoded number to go stale).
-	 */
 	pnpmVersion: string;
-	/** package.json script name that serves the production build (e.g. "start", "preview"). */
+	nodeVersion: string;
 	startScript: string;
-	/** Port the serve script listens on once started. */
 	port: number;
-	/** Origin Budgetly is reachable at, e.g. "https://budgetly.example.com" — no trailing slash. */
 	budgetlyOrigin: string;
 }): string {
-	return `${WORKFLOW_MANAGED_MARKER} Reconnecting this repository on Budgetly regenerates this file — edits made directly here will be overwritten.
+	const budgetlyOrigin = jsString(opts.budgetlyOrigin);
+	const githubRepoId = jsString(opts.githubRepoId);
+
+	return `${WORKFLOW_MANAGED_MARKER}
+# Reconnecting this repository on Budgetly regenerates this file.
+# Direct edits may be overwritten.
+
 name: Budgetly Performance Budgets
 
 on:
   pull_request:
-    branches: ["${opts.defaultBranch}"]
+    branches:
+      - ${yamlQuote(opts.defaultBranch)}
+
+permissions:
+  contents: read
 
 env:
   BUDGETLY_PORT: ${opts.port}
@@ -98,27 +135,90 @@ env:
 jobs:
   lighthouse:
     runs-on: ubuntu-latest
-    # Bounds the whole job so a hung dev server (or anything else) fails loudly
-    # instead of running until someone notices and cancels it by hand.
     timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v7
 
-${setupAndInstall(opts.packageManager, opts.pnpmVersion)}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+${setupAndInstall(opts.packageManager, opts.nodeVersion, opts.pnpmVersion)}
 
       - name: Build
         run: ${runScript(opts.packageManager, "build")}
 
-      - name: Start server in background
+      - name: Start server
         env:
           PORT: \${{ env.BUDGETLY_PORT }}
+          HOST: 127.0.0.1
+          HOSTNAME: 127.0.0.1
+          NITRO_HOST: 127.0.0.1
+          NITRO_PORT: \${{ env.BUDGETLY_PORT }}
         run: |
-          ${runScript(opts.packageManager, opts.startScript)} &
-          npx --yes wait-on -v "http://localhost:\${{ env.BUDGETLY_PORT }}" --timeout 180000 --interval 2000 --httpTimeout 10000
+          set -e
+
+          ${runScript(opts.packageManager, opts.startScript)} > server.log 2>&1 &
+          echo $! > server.pid
+
+          sleep 2
+
+          if ! kill -0 "$(cat server.pid)" 2>/dev/null; then
+            echo "::error::The production server exited immediately."
+            cat server.log
+            exit 1
+          fi
+
+      - name: Wait for server
+        run: |
+          node <<'NODE'
+          const port = process.env.BUDGETLY_PORT;
+          const url = "http://127.0.0.1:" + port;
+          const timeout = Date.now() + 180000;
+
+          async function waitForServer() {
+            while (Date.now() < timeout) {
+              try {
+                const response = await fetch(url);
+
+                console.log(
+                  "Server is reachable: HTTP " + response.status,
+                );
+
+                process.exit(0);
+              } catch {
+                await new Promise((resolve) => setTimeout(resolve, 2000));
+              }
+            }
+
+            console.error("Timed out waiting for " + url);
+            process.exit(1);
+          }
+
+          waitForServer().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+
+      - name: Show server log
+        if: \${{ failure() }}
+        run: |
+          echo "===== server.log ====="
+          cat server.log || true
+
+          echo "===== process ====="
+          if [ -f server.pid ]; then
+            ps -p "$(cat server.pid)" -f || true
+          fi
 
       - name: Run Lighthouse
         timeout-minutes: 5
-        run: npx --yes lighthouse "http://localhost:\${{ env.BUDGETLY_PORT }}" --output=json --output-path=./lighthouse.json --chrome-flags="--headless --no-sandbox" --max-wait-for-load=45000
+        run: |
+          npx --yes lighthouse \\
+            "http://127.0.0.1:\${{ env.BUDGETLY_PORT }}" \\
+            --output=json \\
+            --output-path=./lighthouse.json \\
+            --chrome-flags="--headless --no-sandbox --disable-dev-shm-usage" \\
+            --max-wait-for-load=45000
 
       - name: Report to Budgetly
         env:
@@ -128,52 +228,112 @@ ${setupAndInstall(opts.packageManager, opts.pnpmVersion)}
           PR_AUTHOR: \${{ github.event.pull_request.user.login }}
           PR_BRANCH: \${{ github.event.pull_request.head.ref }}
         run: |
-          node -e '
+          if [ -z "$BUDGETLY_TOKEN" ]; then
+            echo "::notice::BUDGETLY_TOKEN is unavailable. Skipping Budgetly report."
+            echo "::notice::This normally happens for pull requests opened from a fork."
+            exit 0
+          fi
+
+          node <<'NODE'
           const fs = require("fs");
-          const report = JSON.parse(fs.readFileSync("./lighthouse.json", "utf8"));
-          const a = report.audits;
-          const metrics = {
-            LCP: a["largest-contentful-paint"].numericValue,
-            CLS: a["cumulative-layout-shift"].numericValue,
-            FCP: a["first-contentful-paint"].numericValue,
-            TBT: a["total-blocking-time"].numericValue,
-            PERF: Math.round(report.categories.performance.score * 100),
-          };
-          // Lighthouse (lab data) has no INP audit — INP is a field metric,
-          // not something a single synthetic run produces. Left out on purpose.
-          fetch("${opts.budgetlyOrigin}/api/ingest", {
-            method: "POST",
-            headers: {
-              "content-type": "application/json",
-              authorization: "Bearer " + process.env.BUDGETLY_TOKEN,
-            },
-            body: JSON.stringify({
-              githubRepoId: "${opts.githubRepoId}",
-              prNumber: Number(process.env.PR_NUMBER),
-              prTitle: process.env.PR_TITLE,
-              prAuthor: process.env.PR_AUTHOR,
-              branch: process.env.PR_BRANCH,
-              metrics,
-            }),
-          }).then(async (res) => {
-            const body = await res.json();
-            console.log(JSON.stringify(body, null, 2));
-            if (!res.ok) process.exit(1);
-            if (body.status === "failing") {
-              console.error("Budgetly: a required performance budget was violated.");
-              process.exit(1);
+
+          async function main() {
+            const report = JSON.parse(
+              fs.readFileSync("./lighthouse.json", "utf8"),
+            );
+
+            const audits = report.audits;
+
+            const metrics = {
+              LCP: audits["largest-contentful-paint"]?.numericValue ?? null,
+              CLS: audits["cumulative-layout-shift"]?.numericValue ?? null,
+              FCP: audits["first-contentful-paint"]?.numericValue ?? null,
+              TBT: audits["total-blocking-time"]?.numericValue ?? null,
+              PERF:
+                typeof report.categories?.performance?.score === "number"
+                  ? Math.round(report.categories.performance.score * 100)
+                  : null,
+            };
+
+            const response = await fetch(
+              ${budgetlyOrigin} + "/api/ingest",
+              {
+                method: "POST",
+                headers: {
+                  "content-type": "application/json",
+                  authorization:
+                    "Bearer " + process.env.BUDGETLY_TOKEN,
+                },
+                body: JSON.stringify({
+                  githubRepoId: ${githubRepoId},
+                  prNumber: Number(process.env.PR_NUMBER),
+                  prTitle: process.env.PR_TITLE,
+                  prAuthor: process.env.PR_AUTHOR,
+                  branch: process.env.PR_BRANCH,
+                  metrics,
+                }),
+              },
+            );
+
+            const text = await response.text();
+
+            console.log(text);
+
+            let body;
+
+            try {
+              body = JSON.parse(text);
+            } catch {
+              throw new Error(
+                "Budgetly returned invalid JSON (HTTP " +
+                  response.status +
+                  ").",
+              );
             }
+
+            if (!response.ok) {
+              throw new Error(
+                "Budgetly API returned HTTP " +
+                  response.status +
+                  ".",
+              );
+            }
+
+            if (body.status === "failing") {
+              throw new Error(
+                "Budgetly: a required performance budget was violated.",
+              );
+            }
+          }
+
+          main().catch((error) => {
+            console.error(error);
+            process.exit(1);
           });
-          '
+          NODE
 
 # Setup checklist:
-# 1. Add a repo secret named BUDGETLY_TOKEN (Settings > Secrets and
-#    variables > Actions) with the token from Budgetly's Settings page.
-# 2. Package manager (${opts.packageManager}${opts.packageManager === "pnpm" ? ` ${opts.pnpmVersion}` : ""}),
-#    serve script ("${opts.startScript}"), and port (${opts.port}) were detected
-#    from this repo at connect time. Wrong? Disconnect and reconnect the repo
-#    on Budgetly (or type an override when connecting) to regenerate this
-#    file — don't edit the values above by hand, they'll be overwritten on
-#    the next reconnect.
+# 1. Add a repository secret named BUDGETLY_TOKEN:
+#    Settings > Secrets and variables > Actions.
+#
+# 2. The generated workflow uses the repository's detected:
+#    - package manager
+#    - package manager version
+#    - Node version
+#    - build script
+#    - production start script
+#    - server port
+#
+# 3. For pnpm <= 10, pnpm/action-setup@v6 is used.
+#    For pnpm >= 11, pnpm/setup@v2 is used.
+#
+# 4. Yarn 1 uses --frozen-lockfile.
+#    Yarn 2+ uses --immutable.
+#
+# 5. Pull requests from forks cannot access repository secrets safely,
+#    so the Budgetly report step skips itself when BUDGETLY_TOKEN is absent.
+#
+# 6. Disconnecting and reconnecting the repository on Budgetly regenerates
+#    this workflow from the detected repository configuration.
 `;
 }
