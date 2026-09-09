@@ -5,17 +5,26 @@ import {
 	GithubLogoIcon,
 	WarningCircleIcon,
 } from "@phosphor-icons/react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
+import { getSession } from "@/lib/auth.functions";
 import { authClient } from "@/lib/auth-client";
 import { linkUnderline } from "@/lib/link-hover";
 import { EASE_IN, EASE_OUT, staggerContainer, staggerItem } from "@/lib/motion";
 
 export const Route = createFileRoute("/login")({
+	// Signing in again while already signed in should just land on the
+	// dashboard, not show the sign-in screen a second time.
+	beforeLoad: async () => {
+		const session = await getSession();
+		if (session) {
+			throw redirect({ to: "/dashboard" });
+		}
+	},
 	head: () => ({
 		meta: [
 			{ title: "Sign in: Budgetly" },
