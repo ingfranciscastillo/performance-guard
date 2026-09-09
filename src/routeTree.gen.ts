@@ -24,6 +24,7 @@ import { Route as AuthenticatedRepositoriesIndexRouteImport } from './routes/_au
 import { Route as AuthenticatedRepositoriesRepoIdRouteImport } from './routes/_authenticated/repositories/$repoId'
 import { Route as AuthenticatedRepositoriesNewRouteImport } from './routes/_authenticated/repositories/new'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiCronWeeklyDigestRouteImport } from './routes/api/cron/weekly-digest'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -102,6 +103,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCronWeeklyDigestRoute = ApiCronWeeklyDigestRouteImport.update({
+  id: '/api/cron/weekly-digest',
+  path: '/api/cron/weekly-digest',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -116,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/repositories/$repoId': typeof AuthenticatedRepositoriesRepoIdRoute
   '/repositories/new': typeof AuthenticatedRepositoriesNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/cron/weekly-digest': typeof ApiCronWeeklyDigestRoute
   '/pulls/': typeof AuthenticatedPullsIndexRoute
   '/repositories/': typeof AuthenticatedRepositoriesIndexRoute
 }
@@ -132,6 +139,7 @@ export interface FileRoutesByTo {
   '/repositories/$repoId': typeof AuthenticatedRepositoriesRepoIdRoute
   '/repositories/new': typeof AuthenticatedRepositoriesNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/cron/weekly-digest': typeof ApiCronWeeklyDigestRoute
   '/pulls': typeof AuthenticatedPullsIndexRoute
   '/repositories': typeof AuthenticatedRepositoriesIndexRoute
 }
@@ -150,6 +158,7 @@ export interface FileRoutesById {
   '/_authenticated/repositories/$repoId': typeof AuthenticatedRepositoriesRepoIdRoute
   '/_authenticated/repositories/new': typeof AuthenticatedRepositoriesNewRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/cron/weekly-digest': typeof ApiCronWeeklyDigestRoute
   '/_authenticated/pulls/': typeof AuthenticatedPullsIndexRoute
   '/_authenticated/repositories/': typeof AuthenticatedRepositoriesIndexRoute
 }
@@ -168,6 +177,7 @@ export interface FileRouteTypes {
     | '/repositories/$repoId'
     | '/repositories/new'
     | '/api/auth/$'
+    | '/api/cron/weekly-digest'
     | '/pulls/'
     | '/repositories/'
   fileRoutesByTo: FileRoutesByTo
@@ -184,6 +194,7 @@ export interface FileRouteTypes {
     | '/repositories/$repoId'
     | '/repositories/new'
     | '/api/auth/$'
+    | '/api/cron/weekly-digest'
     | '/pulls'
     | '/repositories'
   id:
@@ -201,6 +212,7 @@ export interface FileRouteTypes {
     | '/_authenticated/repositories/$repoId'
     | '/_authenticated/repositories/new'
     | '/api/auth/$'
+    | '/api/cron/weekly-digest'
     | '/_authenticated/pulls/'
     | '/_authenticated/repositories/'
   fileRoutesById: FileRoutesById
@@ -212,6 +224,7 @@ export interface RootRouteChildren {
   PricingRoute: typeof PricingRoute
   ApiIngestRoute: typeof ApiIngestRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiCronWeeklyDigestRoute: typeof ApiCronWeeklyDigestRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -321,6 +334,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/cron/weekly-digest': {
+      id: '/api/cron/weekly-digest'
+      path: '/api/cron/weekly-digest'
+      fullPath: '/api/cron/weekly-digest'
+      preLoaderRoute: typeof ApiCronWeeklyDigestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -359,16 +379,8 @@ const rootRouteChildren: RootRouteChildren = {
   PricingRoute: PricingRoute,
   ApiIngestRoute: ApiIngestRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiCronWeeklyDigestRoute: ApiCronWeeklyDigestRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
