@@ -4,7 +4,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { budgets, pullRequests, repos } from "@/db/schema";
 import type { MetricKey, PrStatus } from "@/lib/mock-data";
-import { verifyOrgToken } from "@/lib/org-tokens.functions";
+import { verifyOrgToken } from "@/lib/verify-org-token.server";
 
 const metricsSchema = z
 	.object({
