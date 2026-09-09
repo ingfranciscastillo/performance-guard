@@ -2,8 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { budgets, pullRequests, repos } from "@/db/schema";
-import type { MetricKey, PrStatus } from "@/lib/mock-data";
+import { alerts, budgets, pullRequests, repos } from "@/db/schema";
+import type { MetricKey, PrStatus, Severity } from "@/lib/mock-data";
 import { verifyOrgToken } from "@/lib/verify-org-token.server";
 
 const metricsSchema = z
@@ -85,12 +85,22 @@ async function handleIngest(request: Request) {
 		.where(eq(budgets.repoId, repo.id));
 
 	let status: PrStatus = "passing";
-	const violations: { metric: MetricKey; value: number; max: number }[] = [];
+	const violations: {
+		metric: MetricKey;
+		value: number;
+		max: number;
+		severity: Severity;
+	}[] = [];
 	for (const b of budgetRows) {
 		const value = body.metrics[b.metric];
 		if (value == null) continue; // Lighthouse didn't report this metric this run
 		if (violatesBudget(b.metric, value, b.max)) {
-			violations.push({ metric: b.metric, value, max: b.max });
+			violations.push({
+				metric: b.metric,
+				value,
+				max: b.max,
+				severity: b.severity,
+			});
 			if (b.severity === "fail") status = "failing";
 			else if (status === "passing") status = "warning";
 		}
@@ -131,6 +141,26 @@ async function handleIngest(request: Request) {
 				metrics: body.metrics,
 			},
 		});
+
+	// One alert row per failing run — a required (severity "fail") budget was
+	// violated, the case the "Budget violation" rule on /alerts describes.
+	// "warning"-only runs don't alert: those are soft budgets, not blockers.
+	if (status === "failing") {
+		const failed = violations.filter((v) => v.severity === "fail");
+		const message =
+			failed.length === 1
+				? `PR #${body.prNumber} exceeded the ${failed[0].metric} budget (${failed[0].value} vs max ${failed[0].max}).`
+				: `PR #${body.prNumber} exceeded ${failed.length} required budgets: ${failed.map((v) => v.metric).join(", ")}.`;
+		await db.insert(alerts).values({
+			repoId: repo.id,
+			// No channel integrations (Slack/Discord/email) are wired up yet —
+			// "email" is a placeholder until real delivery exists to pick from.
+			channel: "email",
+			level: "critical",
+			title: "Budget violation",
+			message,
+		});
+	}
 
 	return json({ status, violations });
 }
