@@ -15,6 +15,8 @@ export interface RepoListItem {
 	lastRunAt: string | null;
 	/** Average Performance Score across recorded PRs, or null if there are none yet. */
 	avgPerf: number | null;
+	/** Count of this repo's PRs currently in a failing state (latest run per PR, not a historical count). */
+	failingCount: number;
 }
 
 export const getOrgRepos = createServerFn({ method: "GET" }).handler(
@@ -33,6 +35,7 @@ export const getOrgRepos = createServerFn({ method: "GET" }).handler(
 				avgPerf: sql<
 					string | null
 				>`avg((${pullRequests.metrics}->>'PERF')::numeric)`,
+				failingCount: sql<string>`count(*) filter (where ${pullRequests.status} = 'failing')`,
 			})
 			.from(repos)
 			.leftJoin(pullRequests, eq(pullRequests.repoId, repos.id))
@@ -47,6 +50,7 @@ export const getOrgRepos = createServerFn({ method: "GET" }).handler(
 			prCount: Number(r.prCount),
 			lastRunAt: r.lastRunAt ? new Date(r.lastRunAt).toISOString() : null,
 			avgPerf: r.avgPerf != null ? Math.round(Number(r.avgPerf)) : null,
+			failingCount: Number(r.failingCount),
 		}));
 	},
 );
