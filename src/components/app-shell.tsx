@@ -6,7 +6,6 @@ import {
 	GearIcon,
 	GitPullRequestIcon,
 	ListIcon,
-	MagnifyingGlassIcon,
 	SignOutIcon,
 	SquaresFourIcon,
 	UsersIcon,
@@ -15,8 +14,8 @@ import {
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { Dialog } from "radix-ui";
 import { type ComponentType, type ReactNode, useState } from "react";
-import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
+import { HeaderSearch } from "./header-search";
 import { Logo } from "./logo";
 import { NotificationBell } from "./notification-bell";
 import { ThemeToggle } from "./theme-toggle";
@@ -199,13 +198,7 @@ export function AppShell({
 						<Logo />
 					</div>
 
-					<div className="relative hidden max-w-md flex-1 md:flex">
-						<MagnifyingGlassIcon className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-						<Input
-							placeholder="Search repos, pull requests, metrics"
-							className="h-9 border-border bg-muted/40 pl-8"
-						/>
-					</div>
+					<HeaderSearch />
 
 					<div className="ml-auto flex items-center gap-2">
 						<NotificationBell />
