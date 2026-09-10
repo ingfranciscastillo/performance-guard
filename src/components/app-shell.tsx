@@ -1,17 +1,20 @@
 import {
-	Bell,
-	CaretDown,
-	ChartBar,
-	FolderSimple,
-	Gear,
-	GitPullRequest,
-	MagnifyingGlass,
-	SignOut,
-	SquaresFour,
-	Users,
+	BellIcon,
+	CaretDownIcon,
+	ChartBarIcon,
+	FolderSimpleIcon,
+	GearIcon,
+	GitPullRequestIcon,
+	ListIcon,
+	MagnifyingGlassIcon,
+	SignOutIcon,
+	SquaresFourIcon,
+	UsersIcon,
+	XIcon,
 } from "@phosphor-icons/react";
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import type { ComponentType, ReactNode } from "react";
+import { Dialog } from "radix-ui";
+import { type ComponentType, type ReactNode, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
 import { Logo } from "./logo";
@@ -23,15 +26,21 @@ const nav: {
 	label: string;
 	icon: ComponentType<{ className?: string; weight?: "regular" | "fill" }>;
 }[] = [
-	{ to: "/dashboard", label: "Dashboard", icon: SquaresFour },
-	{ to: "/repositories", label: "Repositories", icon: FolderSimple },
-	{ to: "/pulls", label: "Pull Requests", icon: GitPullRequest },
-	{ to: "/alerts", label: "Alerts", icon: Bell },
-	{ to: "/team", label: "Team", icon: Users },
-	{ to: "/settings", label: "Settings", icon: Gear },
+	{ to: "/dashboard", label: "Dashboard", icon: SquaresFourIcon },
+	{ to: "/repositories", label: "Repositories", icon: FolderSimpleIcon },
+	{ to: "/pulls", label: "Pull Requests", icon: GitPullRequestIcon },
+	{ to: "/alerts", label: "Alerts", icon: BellIcon },
+	{ to: "/team", label: "Team", icon: UsersIcon },
+	{ to: "/settings", label: "Settings", icon: GearIcon },
 ];
 
-function NavList({ pathname }: { pathname: string }) {
+function NavList({
+	pathname,
+	onNavigate,
+}: {
+	pathname: string;
+	onNavigate?: () => void;
+}) {
 	return (
 		<nav className="flex-1 space-y-0.5 px-2">
 			{nav.map((item) => {
@@ -42,6 +51,7 @@ function NavList({ pathname }: { pathname: string }) {
 					<Link
 						key={item.to}
 						to={item.to}
+						onClick={onNavigate}
 						className={`relative flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
 							active
 								? "bg-sidebar-accent font-medium text-foreground"
@@ -77,8 +87,39 @@ function WorkspaceSwitcher() {
 				{initial}
 			</span>
 			<span className="truncate">{isPending ? "Loading…" : name}</span>
-			<CaretDown className="ml-auto size-3.5 shrink-0" weight="bold" />
+			<CaretDownIcon className="ml-auto size-3.5 shrink-0" weight="bold" />
 		</button>
+	);
+}
+
+function SidebarContent({
+	pathname,
+	onNavigate,
+}: {
+	pathname: string;
+	onNavigate?: () => void;
+}) {
+	const navigate = useNavigate();
+
+	return (
+		<>
+			<div className="px-3 py-3">
+				<WorkspaceSwitcher />
+			</div>
+			<NavList pathname={pathname} onNavigate={onNavigate} />
+			<div className="border-t border-border p-3">
+				<button
+					type="button"
+					onClick={() => {
+						void authClient.signOut().then(() => navigate({ to: "/login" }));
+					}}
+					className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+				>
+					<SignOutIcon className="size-4" />
+					Sign out
+				</button>
+			</div>
+		</>
 	);
 }
 
@@ -90,8 +131,8 @@ export function AppShell({
 	title?: string;
 }) {
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
-	const navigate = useNavigate();
 	const { data: session } = authClient.useSession();
+	const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
 	const initial = session?.user.name?.charAt(0).toUpperCase() ?? "U";
 
@@ -103,32 +144,55 @@ export function AppShell({
 						<Logo />
 					</Link>
 				</div>
-				<div className="px-3 py-3">
-					<WorkspaceSwitcher />
-				</div>
-				<NavList pathname={pathname} />
-				<div className="border-t border-border p-3">
-					<button
-						type="button"
-						onClick={() => {
-							void authClient.signOut().then(() => navigate({ to: "/login" }));
-						}}
-						className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-					>
-						<SignOut className="size-4" />
-						Sign out
-					</button>
-				</div>
+				<SidebarContent pathname={pathname} />
 			</aside>
+
+			<Dialog.Root open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+				<Dialog.Portal>
+					<Dialog.Overlay className="fixed inset-0 z-40 bg-black/40 lg:hidden" />
+					<Dialog.Content
+						className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-sidebar outline-none lg:hidden"
+						aria-describedby={undefined}
+					>
+						<Dialog.Title className="sr-only">Navigation menu</Dialog.Title>
+						<div className="flex h-14 items-center justify-between border-b border-border px-5">
+							<Link to="/dashboard" onClick={() => setMobileNavOpen(false)}>
+								<Logo />
+							</Link>
+							<Dialog.Close asChild>
+								<button
+									type="button"
+									aria-label="Close menu"
+									className="rounded-md p-1.5 text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+								>
+									<XIcon className="size-4" />
+								</button>
+							</Dialog.Close>
+						</div>
+						<SidebarContent
+							pathname={pathname}
+							onNavigate={() => setMobileNavOpen(false)}
+						/>
+					</Dialog.Content>
+				</Dialog.Portal>
+			</Dialog.Root>
 
 			<div className="flex min-w-0 flex-1 flex-col">
 				<header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur lg:px-6">
+					<button
+						type="button"
+						aria-label="Open menu"
+						onClick={() => setMobileNavOpen(true)}
+						className="-ml-1.5 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+					>
+						<ListIcon className="size-5" />
+					</button>
 					<div className="lg:hidden">
 						<Logo />
 					</div>
 
 					<div className="relative hidden max-w-md flex-1 md:flex">
-						<MagnifyingGlass className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+						<MagnifyingGlassIcon className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
 						<Input
 							placeholder="Search repos, pull requests, metrics"
 							className="h-9 border-border bg-muted/40 pl-8"
@@ -154,7 +218,7 @@ export function AppShell({
 
 				{title && (
 					<div className="flex items-center gap-3 px-4 pb-2 pt-6 lg:px-8">
-						<ChartBar className="size-4 text-muted-foreground" />
+						<ChartBarIcon className="size-4 text-muted-foreground" />
 						<h1 className="text-xl font-semibold tracking-tight">{title}</h1>
 					</div>
 				)}

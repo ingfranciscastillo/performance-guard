@@ -1,4 +1,4 @@
-import { Moon, Sun } from "@phosphor-icons/react";
+import { MoonIcon, SunIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "./theme-provider";
 
@@ -12,9 +12,9 @@ export function ThemeToggle() {
 			aria-label="Toggle theme"
 		>
 			{theme === "dark" ? (
-				<Sun className="h-4 w-4" />
+				<SunIcon className="h-4 w-4" />
 			) : (
-				<Moon className="h-4 w-4" />
+				<MoonIcon className="h-4 w-4" />
 			)}
 		</Button>
 	);

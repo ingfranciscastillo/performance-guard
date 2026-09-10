@@ -1,4 +1,8 @@
-import { ArrowDownRight, ArrowUpRight, Minus } from "@phosphor-icons/react";
+import {
+	ArrowDownRightIcon,
+	ArrowUpRightIcon,
+	MinusIcon,
+} from "@phosphor-icons/react";
 import { Card } from "@/components/ui/card";
 import {
 	formatMetric,
@@ -69,11 +73,11 @@ export function MetricCard({
 						}`}
 					>
 						{d.diff === 0 ? (
-							<Minus className="h-3 w-3" />
+							<MinusIcon className="h-3 w-3" />
 						) : d.better ? (
-							<ArrowDownRight className="h-3 w-3" />
+							<ArrowDownRightIcon className="h-3 w-3" />
 						) : (
-							<ArrowUpRight className="h-3 w-3" />
+							<ArrowUpRightIcon className="h-3 w-3" />
 						)}
 						{Math.abs(d.pct).toFixed(1)}%
 					</div>

@@ -1,4 +1,4 @@
-import { Bell } from "@phosphor-icons/react";
+import { BellIcon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { Popover } from "radix-ui";
@@ -26,7 +26,7 @@ export function NotificationBell() {
 					}
 					className="relative"
 				>
-					<Bell className="size-4" />
+					<BellIcon className="size-4" />
 					{nonInfo.length > 0 && (
 						<span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-semibold text-destructive-foreground">
 							{nonInfo.length > 9 ? "9+" : nonInfo.length}
