@@ -16,6 +16,7 @@ import {
 	useSuspenseQuery,
 } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { AppShell } from "@/components/app-shell";
@@ -34,6 +35,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { connectRepositories } from "@/lib/github.functions";
 import { connectableReposQueryOptions } from "@/lib/github.queries";
+import { EASE_IN, staggerContainer, staggerItem } from "@/lib/motion";
 
 export const Route = createFileRoute("/_authenticated/repositories/new")({
 	// loader must come before head — with both present on a route, head-before-loader
@@ -89,6 +91,8 @@ function ConnectRepo() {
 	const [startScript, setStartScript] = useState("");
 	const [port, setPort] = useState("");
 	const [envVarNames, setEnvVarNames] = useState("");
+	const [shakeSummary, setShakeSummary] = useState(false);
+	const reduce = useReducedMotion();
 
 	const orgs = useMemo(
 		() => Array.from(new Set(available.map((r) => r.org))),
@@ -142,6 +146,7 @@ function ConnectRepo() {
 	const onConnect = () => {
 		if (selected.length === 0) {
 			toast.error("Select at least one repository");
+			setShakeSummary(true);
 			return;
 		}
 		const chosen = available.filter((r) => selected.includes(r.id));
@@ -251,68 +256,85 @@ function ConnectRepo() {
 							</Card>
 
 							<Card className="p-0 overflow-hidden">
-								<ul className="divide-y divide-border">
+								<motion.ul
+									className="divide-y divide-border"
+									variants={staggerContainer}
+									initial="hidden"
+									animate="show"
+								>
 									{filtered.length === 0 && (
 										<li className="px-5 py-10 text-center text-sm text-muted-foreground">
 											No repositories match "{query}".
 										</li>
 									)}
-									{filtered.map((r) => {
-										const checked = selected.includes(r.id);
-										return (
-											<li key={r.id}>
-												{/*
-												 * biome-ignore lint/a11y/noStaticElementInteractions: mouse-only row convenience
-												 * biome-ignore lint/a11y/useKeyWithClickEvents: the Checkbox below is independently focusable and keyboard-operable
-												 */}
-												<div
-													className={`flex items-center gap-4 px-5 py-3.5 cursor-pointer transition-colors ${
-														checked ? "bg-primary/5" : "hover:bg-muted/30"
-													}`}
-													onClick={() => toggle(r.id)}
+									<AnimatePresence initial={false} mode="popLayout">
+										{filtered.map((r) => {
+											const checked = selected.includes(r.id);
+											return (
+												<motion.li
+													key={r.id}
+													layout
+													variants={staggerItem(reduce)}
+													exit={{
+														opacity: 0,
+														height: 0,
+														transition: { duration: 0.15, ease: EASE_IN },
+													}}
+													className="overflow-hidden"
 												>
-													<Checkbox
-														checked={checked}
-														onCheckedChange={() => toggle(r.id)}
-														onClick={(e) => e.stopPropagation()}
-													/>
-													<div className="flex-1 min-w-0">
-														<div className="flex items-center gap-2">
-															<span className="font-medium font-mono text-sm truncate">
-																{r.fullName}
-															</span>
-															{r.private ? (
-																<span className="inline-flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-																	<LockIcon className="h-2.5 w-2.5" /> private
+													{/*
+													 * biome-ignore lint/a11y/noStaticElementInteractions: mouse-only row convenience
+													 * biome-ignore lint/a11y/useKeyWithClickEvents: the Checkbox below is independently focusable and keyboard-operable
+													 */}
+													<div
+														className={`flex items-center gap-4 px-5 py-3.5 cursor-pointer transition-colors ${
+															checked ? "bg-primary/5" : "hover:bg-muted/30"
+														}`}
+														onClick={() => toggle(r.id)}
+													>
+														<Checkbox
+															checked={checked}
+															onCheckedChange={() => toggle(r.id)}
+															onClick={(e) => e.stopPropagation()}
+														/>
+														<div className="flex-1 min-w-0">
+															<div className="flex items-center gap-2">
+																<span className="font-medium font-mono text-sm truncate">
+																	{r.fullName}
 																</span>
-															) : (
-																<span className="rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px]">
-																	public
-																</span>
-															)}
-														</div>
-														<div className="mt-0.5 flex items-center gap-3 text-[11px] text-muted-foreground font-mono">
-															<span className="inline-flex items-center gap-1">
-																<GitBranchIcon className="h-3 w-3" />{" "}
-																{r.defaultBranch}
-															</span>
-															<span>{r.language}</span>
-															{r.stars > 0 && (
+																{r.private ? (
+																	<span className="inline-flex items-center gap-1 rounded-full bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+																		<LockIcon className="h-2.5 w-2.5" /> private
+																	</span>
+																) : (
+																	<span className="rounded-full bg-primary/10 text-primary px-1.5 py-0.5 text-[10px]">
+																		public
+																	</span>
+																)}
+															</div>
+															<div className="mt-0.5 flex items-center gap-3 text-[11px] text-muted-foreground font-mono">
 																<span className="inline-flex items-center gap-1">
-																	<StarIcon className="h-3 w-3" /> {r.stars}
+																	<GitBranchIcon className="h-3 w-3" />{" "}
+																	{r.defaultBranch}
 																</span>
-															)}
-															<span>updated {r.updated}</span>
+																<span>{r.language}</span>
+																{r.stars > 0 && (
+																	<span className="inline-flex items-center gap-1">
+																		<StarIcon className="h-3 w-3" /> {r.stars}
+																	</span>
+																)}
+																<span>updated {r.updated}</span>
+															</div>
 														</div>
+														{checked && (
+															<CheckIcon className="h-4 w-4 shrink-0 animate-badge-in text-primary" />
+														)}
 													</div>
-													{checked && (
-														<CheckIcon className="h-4 w-4 text-primary" />
-													)}
-												</div>
-											</li>
-										);
-									})}
-								</ul>
+												</motion.li>
+											);
+										})}
+									</AnimatePresence>
+								</motion.ul>
 							</Card>
 
 							<div className="text-xs text-muted-foreground">
@@ -461,7 +483,10 @@ function ConnectRepo() {
 								</div>
 							</Card>
 
-							<Card className="p-5 bg-muted/30">
+							<Card
+								className={`p-5 bg-muted/30 ${shakeSummary ? "animate-shake" : ""}`}
+								onAnimationEnd={() => setShakeSummary(false)}
+							>
 								<div className="flex items-center justify-between text-sm">
 									<span className="text-muted-foreground">Selected</span>
 									<span className="font-mono font-semibold">

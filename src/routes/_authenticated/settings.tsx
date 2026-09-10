@@ -6,11 +6,13 @@ import {
 } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { motion, useReducedMotion } from "motion/react";
 import type { ComponentType } from "react";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { AppShell } from "@/components/app-shell";
 import { CiTokenCard } from "@/components/ci-token-card";
+import { Reveal } from "@/components/reveal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,6 +27,7 @@ import {
 } from "@/lib/integrations.functions";
 import { integrationsOverviewQueryOptions } from "@/lib/integrations.queries";
 import type { IntegrationProvider } from "@/lib/mock-data";
+import { staggerContainer, staggerItem } from "@/lib/motion";
 import { setNotificationPref } from "@/lib/notification-prefs.functions";
 import { notificationPrefsQueryOptions } from "@/lib/notification-prefs.queries";
 
@@ -104,6 +107,7 @@ function OrganizationCard() {
 function NotificationsCard() {
 	const { data: prefs, isPending } = useQuery(notificationPrefsQueryOptions());
 	const queryClient = useQueryClient();
+	const reduce = useReducedMotion();
 
 	const togglePref = useMutation({
 		mutationFn: setNotificationPref,
@@ -123,9 +127,18 @@ function NotificationsCard() {
 			{isPending ? (
 				<p className="mt-4 text-sm text-muted-foreground">Loading…</p>
 			) : (
-				<ul className="mt-4 divide-y divide-border">
+				<motion.ul
+					className="mt-4 divide-y divide-border"
+					variants={staggerContainer}
+					initial="hidden"
+					animate="show"
+				>
 					{prefs?.map((p) => (
-						<li key={p.key} className="flex items-center justify-between py-3">
+						<motion.li
+							key={p.key}
+							variants={staggerItem(reduce)}
+							className="flex items-center justify-between py-3"
+						>
 							<div>
 								<span className="text-sm">{p.label}</span>
 								<p className="text-xs text-muted-foreground">{p.desc}</p>
@@ -139,9 +152,9 @@ function NotificationsCard() {
 									})
 								}
 							/>
-						</li>
+						</motion.li>
 					))}
-				</ul>
+				</motion.ul>
 			)}
 		</Card>
 	);
@@ -170,7 +183,7 @@ function IntegrationCardShell({
 					<div className="flex items-center gap-2">
 						<span className="font-medium">{name}</span>
 						{connected && (
-							<span className="rounded-full bg-success/15 text-success px-2 py-0.5 text-[10px]">
+							<span className="animate-badge-in rounded-full bg-success/15 text-success px-2 py-0.5 text-[10px]">
 								Connected
 							</span>
 						)}
@@ -189,6 +202,7 @@ function IntegrationsTab() {
 	const [connecting, setConnecting] = useState<IntegrationProvider | null>(
 		null,
 	);
+	const reduce = useReducedMotion();
 
 	// The OAuth callback redirects back here with ?integration=&status=&reason=
 	// — surface that once, then strip it so a refresh doesn't re-toast it.
@@ -238,101 +252,114 @@ function IntegrationsTab() {
 	}
 
 	return (
-		<div className="mt-6 grid sm:grid-cols-2 gap-4 max-w-3xl">
-			<IntegrationCardShell
-				icon={GithubLogoIcon}
-				name="GitHub"
-				connected={data.github.connected}
-				desc={
-					data.github.connected
-						? `${data.github.repoCount} repo${data.github.repoCount === 1 ? "" : "s"} connected`
-						: "Not connected"
-				}
-			>
-				<Link to="/repositories">
-					<Button variant="outline" size="sm">
-						Manage
-					</Button>
-				</Link>
-			</IntegrationCardShell>
+		<motion.div
+			className="mt-6 grid sm:grid-cols-2 gap-4 max-w-3xl"
+			variants={staggerContainer}
+			initial="hidden"
+			animate="show"
+		>
+			<motion.div variants={staggerItem(reduce)}>
+				<IntegrationCardShell
+					icon={GithubLogoIcon}
+					name="GitHub"
+					connected={data.github.connected}
+					desc={
+						data.github.connected
+							? `${data.github.repoCount} repo${data.github.repoCount === 1 ? "" : "s"} connected`
+							: "Not connected"
+					}
+				>
+					<Link to="/repositories">
+						<Button variant="outline" size="sm">
+							Manage
+						</Button>
+					</Link>
+				</IntegrationCardShell>
+			</motion.div>
 
-			<IntegrationCardShell
-				icon={SlackLogoIcon}
-				name="Slack"
-				connected={data.slack.connected}
-				desc={
-					data.slack.connected
-						? (data.slack.label ?? "Connected")
-						: "Not connected"
-				}
-			>
-				{data.slack.connected ? (
-					<Button
-						variant="outline"
-						size="sm"
-						disabled={disconnect.isPending}
-						onClick={() => disconnect.mutate({ data: "slack" })}
-					>
-						Disconnect
-					</Button>
-				) : (
-					<Button
-						size="sm"
-						disabled={connecting === "slack"}
-						onClick={() => connect("slack")}
-					>
-						{connecting === "slack" ? "Connecting…" : "Connect"}
-					</Button>
-				)}
-			</IntegrationCardShell>
+			<motion.div variants={staggerItem(reduce)}>
+				<IntegrationCardShell
+					icon={SlackLogoIcon}
+					name="Slack"
+					connected={data.slack.connected}
+					desc={
+						data.slack.connected
+							? (data.slack.label ?? "Connected")
+							: "Not connected"
+					}
+				>
+					{data.slack.connected ? (
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={disconnect.isPending}
+							onClick={() => disconnect.mutate({ data: "slack" })}
+						>
+							Disconnect
+						</Button>
+					) : (
+						<Button
+							size="sm"
+							disabled={connecting === "slack"}
+							onClick={() => connect("slack")}
+						>
+							{connecting === "slack" ? "Connecting…" : "Connect"}
+						</Button>
+					)}
+				</IntegrationCardShell>
+			</motion.div>
 
-			<IntegrationCardShell
-				icon={DiscordLogoIcon}
-				name="Discord"
-				connected={data.discord.connected}
-				desc={
-					data.discord.connected
-						? (data.discord.label ?? "Connected")
-						: "Not connected"
-				}
-			>
-				{data.discord.connected ? (
-					<Button
-						variant="outline"
-						size="sm"
-						disabled={disconnect.isPending}
-						onClick={() => disconnect.mutate({ data: "discord" })}
-					>
-						Disconnect
-					</Button>
-				) : (
-					<Button
-						size="sm"
-						disabled={connecting === "discord"}
-						onClick={() => connect("discord")}
-					>
-						{connecting === "discord" ? "Connecting…" : "Connect"}
-					</Button>
-				)}
-			</IntegrationCardShell>
+			<motion.div variants={staggerItem(reduce)}>
+				<IntegrationCardShell
+					icon={DiscordLogoIcon}
+					name="Discord"
+					connected={data.discord.connected}
+					desc={
+						data.discord.connected
+							? (data.discord.label ?? "Connected")
+							: "Not connected"
+					}
+				>
+					{data.discord.connected ? (
+						<Button
+							variant="outline"
+							size="sm"
+							disabled={disconnect.isPending}
+							onClick={() => disconnect.mutate({ data: "discord" })}
+						>
+							Disconnect
+						</Button>
+					) : (
+						<Button
+							size="sm"
+							disabled={connecting === "discord"}
+							onClick={() => connect("discord")}
+						>
+							{connecting === "discord" ? "Connecting…" : "Connect"}
+						</Button>
+					)}
+				</IntegrationCardShell>
+			</motion.div>
 
-			<IntegrationCardShell
-				icon={EnvelopeSimpleIcon}
-				name="Email digest"
-				connected={data.emailDigest.enabled}
-				desc={
-					data.emailDigest.enabled
-						? "Weekly, to every org member"
-						: "Off — enable under Alert rules"
-				}
-			>
-				<Link to="/alerts">
-					<Button variant="outline" size="sm">
-						Manage
-					</Button>
-				</Link>
-			</IntegrationCardShell>
-		</div>
+			<motion.div variants={staggerItem(reduce)}>
+				<IntegrationCardShell
+					icon={EnvelopeSimpleIcon}
+					name="Email digest"
+					connected={data.emailDigest.enabled}
+					desc={
+						data.emailDigest.enabled
+							? "Weekly, to every org member"
+							: "Off — enable under Alert rules"
+					}
+				>
+					<Link to="/alerts">
+						<Button variant="outline" size="sm">
+							Manage
+						</Button>
+					</Link>
+				</IntegrationCardShell>
+			</motion.div>
+		</motion.div>
 	);
 }
 
@@ -357,6 +384,7 @@ function SecurityCard() {
 	const [newPassword, setNewPassword] = useState("");
 	const [confirmPassword, setConfirmPassword] = useState("");
 	const [saving, setSaving] = useState(false);
+	const [shake, setShake] = useState(false);
 
 	const reset = () => {
 		setCurrentPassword("");
@@ -367,10 +395,12 @@ function SecurityCard() {
 	const handleSubmit = async () => {
 		if (newPassword.length < 8) {
 			toast.error("Password must be at least 8 characters");
+			setShake(true);
 			return;
 		}
 		if (newPassword !== confirmPassword) {
 			toast.error("Passwords don't match");
+			setShake(true);
 			return;
 		}
 
@@ -404,7 +434,10 @@ function SecurityCard() {
 	};
 
 	return (
-		<Card className="p-6 max-w-xl">
+		<Card
+			className={`p-6 max-w-xl ${shake ? "animate-shake" : ""}`}
+			onAnimationEnd={() => setShake(false)}
+		>
 			<h2 className="font-semibold">Password</h2>
 			<p className="mt-1 text-xs text-muted-foreground">
 				{isPending
@@ -483,8 +516,12 @@ function Settings() {
 				</TabsList>
 
 				<TabsContent value="org" className="mt-6 space-y-4">
-					<OrganizationCard />
-					<CiTokenCard />
+					<Reveal>
+						<OrganizationCard />
+					</Reveal>
+					<Reveal delay={0.05}>
+						<CiTokenCard />
+					</Reveal>
 				</TabsContent>
 
 				<TabsContent value="integrations">
@@ -492,53 +529,61 @@ function Settings() {
 				</TabsContent>
 
 				<TabsContent value="billing" className="mt-6">
-					<Card className="p-6 max-w-xl">
-						<div className="flex items-center justify-between">
-							<div>
-								<h2 className="font-semibold">Current plan</h2>
-								<p className="text-sm text-muted-foreground">
-									Team, billed monthly
-								</p>
-							</div>
-							<span className="font-mono text-2xl font-semibold">
-								$149<span className="text-muted-foreground text-sm">/mo</span>
-							</span>
-						</div>
-						<div className="mt-6 grid grid-cols-2 gap-4 text-sm">
-							<div>
-								<div className="text-xs text-muted-foreground">Renews</div>
-								<div className="font-mono mt-1">Jul 12, 2026</div>
-							</div>
-							<div>
-								<div className="text-xs text-muted-foreground">Seats used</div>
-								<div className="font-mono mt-1">5 / unlimited</div>
-							</div>
-							<div>
-								<div className="text-xs text-muted-foreground">
-									Repos monitored
+					<Reveal>
+						<Card className="p-6 max-w-xl">
+							<div className="flex items-center justify-between">
+								<div>
+									<h2 className="font-semibold">Current plan</h2>
+									<p className="text-sm text-muted-foreground">
+										Team, billed monthly
+									</p>
 								</div>
-								<div className="font-mono mt-1">4</div>
+								<span className="font-mono text-2xl font-semibold">
+									$149<span className="text-muted-foreground text-sm">/mo</span>
+								</span>
 							</div>
-							<div>
-								<div className="text-xs text-muted-foreground">
-									Lighthouse runs (mo)
+							<div className="mt-6 grid grid-cols-2 gap-4 text-sm">
+								<div>
+									<div className="text-xs text-muted-foreground">Renews</div>
+									<div className="font-mono mt-1">Jul 12, 2026</div>
 								</div>
-								<div className="font-mono mt-1">12,403</div>
+								<div>
+									<div className="text-xs text-muted-foreground">
+										Seats used
+									</div>
+									<div className="font-mono mt-1">5 / unlimited</div>
+								</div>
+								<div>
+									<div className="text-xs text-muted-foreground">
+										Repos monitored
+									</div>
+									<div className="font-mono mt-1">4</div>
+								</div>
+								<div>
+									<div className="text-xs text-muted-foreground">
+										Lighthouse runs (mo)
+									</div>
+									<div className="font-mono mt-1">12,403</div>
+								</div>
 							</div>
-						</div>
-						<div className="mt-6 flex gap-2">
-							<Button variant="outline">Manage plan</Button>
-							<Button variant="ghost">Download invoice</Button>
-						</div>
-					</Card>
+							<div className="mt-6 flex gap-2">
+								<Button variant="outline">Manage plan</Button>
+								<Button variant="ghost">Download invoice</Button>
+							</div>
+						</Card>
+					</Reveal>
 				</TabsContent>
 
 				<TabsContent value="notifications" className="mt-6">
-					<NotificationsCard />
+					<Reveal>
+						<NotificationsCard />
+					</Reveal>
 				</TabsContent>
 
 				<TabsContent value="security" className="mt-6">
-					<SecurityCard />
+					<Reveal>
+						<SecurityCard />
+					</Reveal>
 				</TabsContent>
 			</Tabs>
 		</AppShell>

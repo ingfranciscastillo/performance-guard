@@ -14,6 +14,7 @@ import {
 	notFound,
 	useNavigate,
 } from "@tanstack/react-router";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import {
@@ -37,6 +38,7 @@ import {
 	updateRepoEnvVars,
 } from "@/lib/github.functions";
 import { formatMetric, METRIC_META } from "@/lib/mock-data";
+import { EASE_IN, EASE_OUT, staggerContainer, staggerItem } from "@/lib/motion";
 import { repoDetailQueryOptions } from "@/lib/repo-detail.queries";
 
 const channelIcon = {
@@ -76,6 +78,7 @@ function RepoDetail() {
 
 	const [envVarNames, setEnvVarNames] = useState(repo.envVarNames.join(", "));
 	const [confirmingDisconnect, setConfirmingDisconnect] = useState(false);
+	const reduce = useReducedMotion();
 
 	const saveEnvVars = useMutation({
 		mutationFn: updateRepoEnvVars,
@@ -297,38 +300,53 @@ function RepoDetail() {
 								No pull requests recorded yet.
 							</p>
 						) : (
-							<table className="w-full text-sm">
-								<thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
-									<tr>
-										<th className="text-left font-medium px-5 py-3">PR</th>
-										<th className="text-left font-medium px-5 py-3">Title</th>
-										<th className="text-left font-medium px-5 py-3">Author</th>
-										<th className="text-left font-medium px-5 py-3">Status</th>
-									</tr>
-								</thead>
-								<tbody className="divide-y divide-border">
-									{repo.pulls.map((p) => (
-										<tr key={p.id} className="hover:bg-muted/30">
-											<td className="px-5 py-3 font-mono">#{p.number}</td>
-											<td className="px-5 py-3">
-												<Link
-													to="/pulls/$prId"
-													params={{ prId: p.id }}
-													className="font-medium hover:text-primary"
-												>
-													{p.title}
-												</Link>
-											</td>
-											<td className="px-5 py-3 text-muted-foreground">
-												{p.author}
-											</td>
-											<td className="px-5 py-3">
-												<StatusBadge status={p.status} />
-											</td>
+							<div className="overflow-x-auto">
+								<table className="w-full text-sm">
+									<thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
+										<tr>
+											<th className="text-left font-medium px-5 py-3">PR</th>
+											<th className="text-left font-medium px-5 py-3">Title</th>
+											<th className="text-left font-medium px-5 py-3">
+												Author
+											</th>
+											<th className="text-left font-medium px-5 py-3">
+												Status
+											</th>
 										</tr>
-									))}
-								</tbody>
-							</table>
+									</thead>
+									<motion.tbody
+										className="divide-y divide-border"
+										variants={staggerContainer}
+										initial="hidden"
+										animate="show"
+									>
+										{repo.pulls.map((p) => (
+											<motion.tr
+												key={p.id}
+												variants={staggerItem(reduce)}
+												className="hover:bg-muted/30"
+											>
+												<td className="px-5 py-3 font-mono">#{p.number}</td>
+												<td className="px-5 py-3">
+													<Link
+														to="/pulls/$prId"
+														params={{ prId: p.id }}
+														className="font-medium hover:text-primary"
+													>
+														{p.title}
+													</Link>
+												</td>
+												<td className="px-5 py-3 text-muted-foreground">
+													{p.author}
+												</td>
+												<td className="px-5 py-3">
+													<StatusBadge status={p.status} />
+												</td>
+											</motion.tr>
+										))}
+									</motion.tbody>
+								</table>
+							</div>
 						)}
 					</Card>
 				</TabsContent>
@@ -341,45 +359,56 @@ function RepoDetail() {
 								manually.
 							</p>
 						) : (
-							<table className="w-full text-sm">
-								<thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
-									<tr>
-										<th className="text-left font-medium px-5 py-3">Metric</th>
-										<th className="text-left font-medium px-5 py-3">Limit</th>
-										<th className="text-left font-medium px-5 py-3">
-											Severity
-										</th>
-										<th className="text-left font-medium px-5 py-3">Action</th>
-									</tr>
-								</thead>
-								<tbody className="divide-y divide-border">
-									{repo.budgets.map((b) => (
-										<tr key={b.metric}>
-											<td className="px-5 py-3">
-												<span className="font-mono font-medium">
-													{b.metric}
-												</span>{" "}
-												<span className="text-xs text-muted-foreground ml-2">
-													{METRIC_META[b.metric].label}
-												</span>
-											</td>
-											<td className="px-5 py-3 font-mono">
-												{formatMetric(b.metric, b.max)}
-											</td>
-											<td className="px-5 py-3">
-												<span
-													className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${b.severity === "fail" ? "bg-destructive/15 text-destructive" : "bg-warning/20 text-warning-foreground"}`}
-												>
-													{b.severity}
-												</span>
-											</td>
-											<td className="px-5 py-3 font-mono text-xs text-muted-foreground">
-												{b.action}
-											</td>
+							<div className="overflow-x-auto">
+								<table className="w-full text-sm">
+									<thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
+										<tr>
+											<th className="text-left font-medium px-5 py-3">
+												Metric
+											</th>
+											<th className="text-left font-medium px-5 py-3">Limit</th>
+											<th className="text-left font-medium px-5 py-3">
+												Severity
+											</th>
+											<th className="text-left font-medium px-5 py-3">
+												Action
+											</th>
 										</tr>
-									))}
-								</tbody>
-							</table>
+									</thead>
+									<motion.tbody
+										className="divide-y divide-border"
+										variants={staggerContainer}
+										initial="hidden"
+										animate="show"
+									>
+										{repo.budgets.map((b) => (
+											<motion.tr key={b.metric} variants={staggerItem(reduce)}>
+												<td className="px-5 py-3">
+													<span className="font-mono font-medium">
+														{b.metric}
+													</span>{" "}
+													<span className="text-xs text-muted-foreground ml-2">
+														{METRIC_META[b.metric].label}
+													</span>
+												</td>
+												<td className="px-5 py-3 font-mono">
+													{formatMetric(b.metric, b.max)}
+												</td>
+												<td className="px-5 py-3">
+													<span
+														className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${b.severity === "fail" ? "bg-destructive/15 text-destructive" : "bg-warning/20 text-warning-foreground"}`}
+													>
+														{b.severity}
+													</span>
+												</td>
+												<td className="px-5 py-3 font-mono text-xs text-muted-foreground">
+													{b.action}
+												</td>
+											</motion.tr>
+										))}
+									</motion.tbody>
+								</table>
+							</div>
 						)}
 					</Card>
 				</TabsContent>
@@ -393,11 +422,20 @@ function RepoDetail() {
 								violation on a PR shows up here.
 							</p>
 						) : (
-							<ul className="mt-4 divide-y divide-border">
+							<motion.ul
+								className="mt-4 divide-y divide-border"
+								variants={staggerContainer}
+								initial="hidden"
+								animate="show"
+							>
 								{repo.alerts.map((a) => {
 									const Icon = channelIcon[a.channel];
 									return (
-										<li key={a.id} className="flex gap-4 py-4">
+										<motion.li
+											key={a.id}
+											variants={staggerItem(reduce)}
+											className="flex gap-4 py-4"
+										>
 											<div
 												className={`h-8 w-8 rounded-md grid place-items-center shrink-0 ${a.level === "critical" ? "bg-destructive/15 text-destructive" : a.level === "warning" ? "bg-warning/20 text-warning-foreground" : "bg-muted text-muted-foreground"}`}
 											>
@@ -419,10 +457,10 @@ function RepoDetail() {
 													{a.channel} · {timeAgo(a.createdAt)}
 												</div>
 											</div>
-										</li>
+										</motion.li>
 									);
 								})}
-							</ul>
+							</motion.ul>
 						)}
 					</Card>
 				</TabsContent>
@@ -477,36 +515,55 @@ function RepoDetail() {
 							committed workflow file is removed from the repo on a best-effort
 							basis.
 						</p>
-						{confirmingDisconnect ? (
-							<div className="mt-4 flex items-center gap-3">
-								<span className="text-sm font-medium">Are you sure?</span>
-								<Button
-									variant="destructive"
-									size="sm"
-									disabled={disconnect.isPending}
-									onClick={() => disconnect.mutate({ data: repoId })}
+						<AnimatePresence mode="wait" initial={false}>
+							{confirmingDisconnect ? (
+								<motion.div
+									key="confirm"
+									initial={{ opacity: 0, y: -4 }}
+									animate={{ opacity: 1, y: 0 }}
+									exit={{ opacity: 0, y: -4 }}
+									transition={{ duration: 0.15, ease: EASE_OUT }}
+									className="mt-4 flex items-center gap-3"
 								>
-									{disconnect.isPending ? "Disconnecting…" : "Yes, disconnect"}
-								</Button>
-								<Button
-									variant="ghost"
-									size="sm"
-									disabled={disconnect.isPending}
-									onClick={() => setConfirmingDisconnect(false)}
+									<span className="text-sm font-medium">Are you sure?</span>
+									<Button
+										variant="destructive"
+										size="sm"
+										disabled={disconnect.isPending}
+										onClick={() => disconnect.mutate({ data: repoId })}
+									>
+										{disconnect.isPending
+											? "Disconnecting…"
+											: "Yes, disconnect"}
+									</Button>
+									<Button
+										variant="ghost"
+										size="sm"
+										disabled={disconnect.isPending}
+										onClick={() => setConfirmingDisconnect(false)}
+									>
+										Cancel
+									</Button>
+								</motion.div>
+							) : (
+								<motion.div
+									key="trigger"
+									initial={{ opacity: 0 }}
+									animate={{ opacity: 1 }}
+									exit={{ opacity: 0 }}
+									transition={{ duration: 0.15, ease: EASE_IN }}
 								>
-									Cancel
-								</Button>
-							</div>
-						) : (
-							<Button
-								className="mt-4"
-								variant="destructive"
-								size="sm"
-								onClick={() => setConfirmingDisconnect(true)}
-							>
-								Disconnect repository
-							</Button>
-						)}
+									<Button
+										className="mt-4"
+										variant="destructive"
+										size="sm"
+										onClick={() => setConfirmingDisconnect(true)}
+									>
+										Disconnect repository
+									</Button>
+								</motion.div>
+							)}
+						</AnimatePresence>
 					</Card>
 				</TabsContent>
 			</Tabs>
