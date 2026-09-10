@@ -74,7 +74,7 @@ function Repos() {
 									initial="hidden"
 									animate="show"
 								>
-									<AnimatePresence initial={false} mode="popLayout">
+									<AnimatePresence mode="popLayout">
 										{repos.map((r) => (
 											<motion.tr
 												key={r.id}

@@ -106,7 +106,7 @@ function Pulls() {
 										initial="hidden"
 										animate="show"
 									>
-										<AnimatePresence initial={false} mode="popLayout">
+										<AnimatePresence mode="popLayout">
 											{filtered.map((p) => {
 												const lcp =
 													p.metrics.LCP != null && p.baseline.LCP != null

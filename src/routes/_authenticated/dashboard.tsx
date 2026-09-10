@@ -213,7 +213,7 @@ function Dashboard() {
 								initial="hidden"
 								animate="show"
 							>
-								<AnimatePresence initial={false} mode="popLayout">
+								<AnimatePresence mode="popLayout">
 									{alerts.slice(0, 4).map((a) => (
 										<motion.li
 											key={a.id}
@@ -274,7 +274,7 @@ function Dashboard() {
 								initial="hidden"
 								animate="show"
 							>
-								<AnimatePresence initial={false} mode="popLayout">
+								<AnimatePresence mode="popLayout">
 									{repos.map((r) => (
 										<motion.li
 											key={r.id}
@@ -353,7 +353,7 @@ function Dashboard() {
 								initial="hidden"
 								animate="show"
 							>
-								<AnimatePresence initial={false} mode="popLayout">
+								<AnimatePresence mode="popLayout">
 									{pulls.slice(0, 6).map((p) => (
 										<motion.li
 											key={p.id}

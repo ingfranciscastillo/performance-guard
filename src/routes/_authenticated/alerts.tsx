@@ -69,7 +69,7 @@ function Alerts() {
 								initial="hidden"
 								animate="show"
 							>
-								<AnimatePresence initial={false} mode="popLayout">
+								<AnimatePresence mode="popLayout">
 									{alerts.map((a) => {
 										const Icon = channelIcon[a.channel];
 										return (

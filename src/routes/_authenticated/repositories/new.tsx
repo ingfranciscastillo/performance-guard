@@ -267,7 +267,7 @@ function ConnectRepo() {
 											No repositories match "{query}".
 										</li>
 									)}
-									<AnimatePresence initial={false} mode="popLayout">
+									<AnimatePresence mode="popLayout">
 										{filtered.map((r) => {
 											const checked = selected.includes(r.id);
 											return (

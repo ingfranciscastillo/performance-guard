@@ -110,7 +110,7 @@ function Team() {
 								initial="hidden"
 								animate="show"
 							>
-								<AnimatePresence initial={false} mode="popLayout">
+								<AnimatePresence mode="popLayout">
 									{members.map((m) => (
 										<motion.li
 											key={m.id}
@@ -182,7 +182,7 @@ function Team() {
 									initial="hidden"
 									animate="show"
 								>
-									<AnimatePresence initial={false} mode="popLayout">
+									<AnimatePresence mode="popLayout">
 										{pendingInvitations.map((inv) => (
 											<motion.li
 												key={inv.id}
