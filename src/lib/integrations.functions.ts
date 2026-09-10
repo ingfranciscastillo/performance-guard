@@ -11,7 +11,8 @@ import {
 } from "@/lib/integrations.server";
 import type { IntegrationProvider } from "@/lib/mock-data";
 import { signOAuthState } from "@/lib/oauth-state.server";
-import { getOrgPlan, isPro, type Plan } from "@/lib/plan";
+import { isPro, type Plan } from "@/lib/plan";
+import { getOrgPlan } from "@/lib/plan.server";
 
 export interface IntegrationsOverview {
 	github: { connected: boolean; repoCount: number };

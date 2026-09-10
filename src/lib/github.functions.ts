@@ -16,7 +16,8 @@ import {
 	pickServeScript,
 } from "@/lib/github";
 import type { Action, MetricKey, Severity } from "@/lib/mock-data";
-import { FREE_REPO_LIMIT, getOrgPlan, isPro } from "@/lib/plan";
+import { FREE_REPO_LIMIT, isPro } from "@/lib/plan";
+import { getOrgPlan } from "@/lib/plan.server";
 import { vitalgateWorkflowYaml } from "@/lib/workflow-template";
 
 async function getGithubAccessToken(userId: string): Promise<string> {

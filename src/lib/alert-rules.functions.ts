@@ -8,7 +8,8 @@ import {
 } from "@/lib/alert-rules.server";
 import { ensureSession } from "@/lib/auth.functions";
 import type { AlertRuleKey } from "@/lib/mock-data";
-import { getOrgPlan, isPro, PRO_ONLY_ALERT_RULES } from "@/lib/plan";
+import { isPro, PRO_ONLY_ALERT_RULES } from "@/lib/plan";
+import { getOrgPlan } from "@/lib/plan.server";
 
 export type { AlertRuleItem };
 
