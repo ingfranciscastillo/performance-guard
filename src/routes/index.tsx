@@ -65,7 +65,7 @@ export const Route = createFileRoute("/")({
 						"@type": "Offer",
 						price: "0",
 						priceCurrency: "USD",
-						description: "Free for the first 10 repositories.",
+						description: "Free for one repository.",
 					},
 				},
 			},
@@ -501,38 +501,26 @@ function DashboardPreview() {
 function PricingPreview() {
 	const plans = [
 		{
-			name: "Starter",
-			price: "$49",
-			desc: "For small teams getting started.",
+			name: "Free",
+			price: "$0",
+			desc: "Try it on your main repo.",
 			features: [
-				"Up to 10 repositories",
-				"5 team members",
-				"Basic alerts",
-				"3-month history",
+				"1 connected repository",
+				"Unlimited PRs audited",
+				"Core Web Vitals budgets",
+				"Email alerts",
 			],
 		},
 		{
-			name: "Team",
-			price: "$149",
+			name: "Pro",
+			price: "$29",
 			popular: true,
-			desc: "For growing engineering orgs.",
+			desc: "For teams protecting more than one repo.",
 			features: [
 				"Unlimited repositories",
-				"Unlimited members",
-				"Slack + Discord",
-				"1-year history",
-				"Advanced reports",
-			],
-		},
-		{
-			name: "Enterprise",
-			price: "Custom",
-			desc: "For platform teams at scale.",
-			features: [
-				"SSO / SAML",
-				"Custom audits",
-				"SLA and priority support",
-				"On-prem runners",
+				"Slack + Discord alerts",
+				"Custom alert rules",
+				"Weekly digest email",
 			],
 		},
 	];
@@ -547,7 +535,7 @@ function PricingPreview() {
 						Simple plans that scale with your repos.
 					</h2>
 				</Reveal>
-				<div className="mt-12 grid gap-4 md:grid-cols-3">
+				<div className="mt-12 grid gap-4 sm:grid-cols-2 max-w-2xl mx-auto">
 					{plans.map((p, i) => (
 						<Reveal key={p.name} delay={i * 0.06}>
 							<Card
@@ -567,9 +555,7 @@ function PricingPreview() {
 									<span className="font-mono text-4xl font-semibold">
 										{p.price}
 									</span>
-									{p.price !== "Custom" && (
-										<span className="text-sm text-muted-foreground">/mo</span>
-									)}
+									<span className="text-sm text-muted-foreground">/mo</span>
 								</div>
 								<p className="mt-2 text-sm text-muted-foreground">{p.desc}</p>
 								<Link to="/login" className="mt-5 block">
@@ -577,9 +563,7 @@ function PricingPreview() {
 										className={`w-full ${p.popular ? "bg-brand text-brand-foreground hover:bg-brand/90" : ""}`}
 										variant={p.popular ? "default" : "outline"}
 									>
-										{p.price === "Custom"
-											? "Talk to sales"
-											: "Start free trial"}
+										{p.popular ? "Upgrade to Pro" : "Start free"}
 									</Button>
 								</Link>
 								<ul className="mt-6 space-y-2 text-sm">
@@ -607,19 +591,15 @@ function Faq() {
 		},
 		{
 			q: "Where do the Lighthouse runs happen?",
-			a: "On our isolated edge runners, with multi-pass medians for stability. Bring-your-own-runner is supported on Team and Enterprise.",
+			a: "On your own GitHub Actions runner. Vitalgate never builds, hosts, or sees your source — the workflow it commits to your repo runs the audit and reports results back over a signed webhook.",
 		},
 		{
 			q: "Can I have different budgets per route?",
-			a: "Yes. Define route-level budgets in a simple YAML config or via the dashboard.",
+			a: "Not yet — budgets today apply per repository, checked on every PR for LCP, INP, CLS, FCP, TBT and overall score. Per-route budgets are on the roadmap.",
 		},
 		{
-			q: "Does it work with monorepos?",
-			a: "Yes, point each package at its own build output and budget set, all under one repo.",
-		},
-		{
-			q: "Do you support self-hosting?",
-			a: "Enterprise plans include on-prem runners and a private control plane.",
+			q: "What happens when a PR fails a budget?",
+			a: "Required metrics block the merge via a GitHub status check; soft ones just post a comment with the diff against your baseline. You choose which is which, per metric.",
 		},
 	];
 	return (

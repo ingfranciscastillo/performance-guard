@@ -12,15 +12,14 @@ export const Route = createFileRoute("/pricing")({
 			{
 				name: "description",
 				content:
-					"Transparent pricing for teams that take web performance seriously. Free trial, no credit card.",
+					"Free for one repository. $29/mo for unlimited repos, Slack and Discord alerts, and a weekly digest.",
 			},
 			{ property: "og:type", content: "website" },
 			{ property: "og:url", content: `${SITE_URL}/pricing` },
 			{ property: "og:title", content: "Vitalgate pricing" },
 			{
 				property: "og:description",
-				content:
-					"Starter, Team and Enterprise plans for performance budget tracking.",
+				content: "Free and Pro plans for performance budget tracking.",
 			},
 			...OG_IMAGE_META,
 			{ name: "twitter:card", content: "summary_large_image" },
@@ -32,42 +31,30 @@ export const Route = createFileRoute("/pricing")({
 
 const plans = [
 	{
-		name: "Starter",
-		price: "$49",
-		desc: "Small teams getting performance under control.",
+		name: "Free",
+		price: "$0",
+		desc: "Try Vitalgate on your main repo, for as long as you want.",
 		features: [
-			"Up to 10 repositories",
-			"5 team members",
-			"Basic alerts",
-			"3-month history",
-			"Lighthouse mobile + desktop",
+			"1 connected repository",
+			"Unlimited pull requests audited",
+			"Core Web Vitals budgets (LCP, INP, CLS, FCP, TBT, score)",
+			"PR comments + merge blocking on failing budgets",
+			"Email alerts",
+			"Unlimited team members",
 		],
 	},
 	{
-		name: "Team",
-		price: "$149",
+		name: "Pro",
+		price: "$29",
 		popular: true,
-		desc: "Growing engineering organizations.",
+		desc: "For teams protecting more than one repo.",
 		features: [
 			"Unlimited repositories",
-			"Unlimited members",
-			"Slack + Discord alerts",
-			"1-year history",
-			"Advanced reports",
-			"Per-route budgets",
-		],
-	},
-	{
-		name: "Enterprise",
-		price: "Custom",
-		desc: "Platform teams that need scale and control.",
-		features: [
-			"SSO / SAML",
-			"Custom audits",
-			"Dedicated SLA",
-			"Priority support",
-			"On-prem runners",
-			"Audit log export",
+			"Everything in Free",
+			"Slack + Discord alert delivery",
+			"Custom alert rules (regressions, score thresholds)",
+			"Weekly performance digest email",
+			"Priority email support",
 		],
 	},
 ];
@@ -83,12 +70,12 @@ function Pricing() {
 					Built for teams that ship.
 				</h1>
 				<p className="mt-4 text-muted-foreground max-w-xl mx-auto">
-					Start free, upgrade when your team grows. No per-seat surprises, no
-					audit-time renegotiations.
+					Free for your first repo. $29/mo once you need more than one — no
+					per-seat charges, no sales call required.
 				</p>
 			</section>
-			<section className="mx-auto max-w-6xl px-5 pb-24">
-				<div className="grid md:grid-cols-3 gap-4">
+			<section className="mx-auto max-w-3xl px-5 pb-24">
+				<div className="grid sm:grid-cols-2 gap-4">
 					{plans.map((p) => (
 						<Card
 							key={p.name}
@@ -106,9 +93,7 @@ function Pricing() {
 								<span className="font-mono text-4xl font-semibold">
 									{p.price}
 								</span>
-								{p.price !== "Custom" && (
-									<span className="text-sm text-muted-foreground">/mo</span>
-								)}
+								<span className="text-sm text-muted-foreground">/mo</span>
 							</div>
 							<p className="mt-2 text-sm text-muted-foreground">{p.desc}</p>
 							<Link to="/login" className="block mt-5">
@@ -116,7 +101,7 @@ function Pricing() {
 									className={`w-full ${p.popular ? "bg-brand text-brand-foreground hover:bg-brand/90" : ""}`}
 									variant={p.popular ? "default" : "outline"}
 								>
-									{p.price === "Custom" ? "Talk to sales" : "Start free trial"}
+									{p.popular ? "Upgrade to Pro" : "Start free"}
 								</Button>
 							</Link>
 							<ul className="mt-6 space-y-2 text-sm">

@@ -30,6 +30,7 @@ import type { IntegrationProvider } from "@/lib/mock-data";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { setNotificationPref } from "@/lib/notification-prefs.functions";
 import { notificationPrefsQueryOptions } from "@/lib/notification-prefs.queries";
+import { orgReposQueryOptions } from "@/lib/repos.queries";
 
 export const Route = createFileRoute("/_authenticated/settings")({
 	head: () => ({ meta: [{ title: "Settings: Vitalgate" }] }),
@@ -503,6 +504,56 @@ function SecurityCard() {
 	);
 }
 
+const FREE_REPO_LIMIT = 1;
+
+/**
+ * There's no billing provider wired up yet — every org is effectively on the
+ * Free plan. This shows the org's real repo count against that plan's real
+ * limit instead of the fabricated "$149/mo Team" data this tab used to show.
+ */
+function BillingCard() {
+	const { data: repos, isPending } = useQuery(orgReposQueryOptions());
+	const repoCount = repos?.length ?? 0;
+	const overLimit = repoCount > FREE_REPO_LIMIT;
+
+	return (
+		<Card className="p-6 max-w-xl">
+			<div className="flex items-center justify-between">
+				<div>
+					<h2 className="font-semibold">Current plan</h2>
+					<p className="text-sm text-muted-foreground">Free</p>
+				</div>
+				<span className="font-mono text-2xl font-semibold">
+					$0<span className="text-muted-foreground text-sm">/mo</span>
+				</span>
+			</div>
+			<div className="mt-6">
+				<div className="text-xs text-muted-foreground">
+					Repositories connected
+				</div>
+				<div className="font-mono mt-1">
+					{isPending ? "…" : repoCount}
+					<span className="text-muted-foreground text-sm">
+						{" "}
+						/ {FREE_REPO_LIMIT} included free
+					</span>
+				</div>
+				{overLimit && (
+					<p className="mt-2 text-xs text-warning-foreground">
+						You're over the Free plan's repo limit — upgrade to Pro for
+						unlimited repositories.
+					</p>
+				)}
+			</div>
+			<div className="mt-6">
+				<Link to="/pricing">
+					<Button variant="outline">See plans</Button>
+				</Link>
+			</div>
+		</Card>
+	);
+}
+
 function Settings() {
 	return (
 		<AppShell title="Settings">
@@ -530,47 +581,7 @@ function Settings() {
 
 				<TabsContent value="billing" className="mt-6">
 					<Reveal>
-						<Card className="p-6 max-w-xl">
-							<div className="flex items-center justify-between">
-								<div>
-									<h2 className="font-semibold">Current plan</h2>
-									<p className="text-sm text-muted-foreground">
-										Team, billed monthly
-									</p>
-								</div>
-								<span className="font-mono text-2xl font-semibold">
-									$149<span className="text-muted-foreground text-sm">/mo</span>
-								</span>
-							</div>
-							<div className="mt-6 grid grid-cols-2 gap-4 text-sm">
-								<div>
-									<div className="text-xs text-muted-foreground">Renews</div>
-									<div className="font-mono mt-1">Jul 12, 2026</div>
-								</div>
-								<div>
-									<div className="text-xs text-muted-foreground">
-										Seats used
-									</div>
-									<div className="font-mono mt-1">5 / unlimited</div>
-								</div>
-								<div>
-									<div className="text-xs text-muted-foreground">
-										Repos monitored
-									</div>
-									<div className="font-mono mt-1">4</div>
-								</div>
-								<div>
-									<div className="text-xs text-muted-foreground">
-										Lighthouse runs (mo)
-									</div>
-									<div className="font-mono mt-1">12,403</div>
-								</div>
-							</div>
-							<div className="mt-6 flex gap-2">
-								<Button variant="outline">Manage plan</Button>
-								<Button variant="ghost">Download invoice</Button>
-							</div>
-						</Card>
+						<BillingCard />
 					</Reveal>
 				</TabsContent>
 
