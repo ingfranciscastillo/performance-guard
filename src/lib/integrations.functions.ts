@@ -11,6 +11,7 @@ import {
 } from "@/lib/integrations.server";
 import type { IntegrationProvider } from "@/lib/mock-data";
 import { signOAuthState } from "@/lib/oauth-state.server";
+import { getOrgPlan, isPro, type Plan } from "@/lib/plan";
 
 export interface IntegrationsOverview {
 	github: { connected: boolean; repoCount: number };
@@ -18,6 +19,8 @@ export interface IntegrationsOverview {
 	discord: { connected: boolean; label: string | null };
 	/** Whether the org's weekly_digest alert rule is on — actual control lives on /alerts, this just reflects it. */
 	emailDigest: { enabled: boolean };
+	/** Slack/Discord are Pro-only; the client uses this to show an upgrade prompt instead of a Connect button. */
+	plan: Plan;
 }
 
 export const getIntegrationsOverview = createServerFn({
@@ -26,34 +29,39 @@ export const getIntegrationsOverview = createServerFn({
 	const session = await ensureSession();
 	const organizationId = session.session.activeOrganizationId;
 
-	const [[githubAccount], connected, orgRepos, rules] = await Promise.all([
-		db
-			.select({ id: account.id })
-			.from(account)
-			.where(
-				and(
-					eq(account.userId, session.user.id),
-					eq(account.providerId, "github"),
-				),
-			)
-			.limit(1),
-		organizationId
-			? db
-					.select({
-						provider: integrations.provider,
-						label: integrations.label,
-					})
-					.from(integrations)
-					.where(eq(integrations.organizationId, organizationId))
-			: Promise.resolve([]),
-		organizationId
-			? db
-					.select({ id: repos.id })
-					.from(repos)
-					.where(eq(repos.organizationId, organizationId))
-			: Promise.resolve([]),
-		organizationId ? getOrgAlertRules(organizationId) : Promise.resolve([]),
-	]);
+	const [[githubAccount], connected, orgRepos, rules, plan] = await Promise.all(
+		[
+			db
+				.select({ id: account.id })
+				.from(account)
+				.where(
+					and(
+						eq(account.userId, session.user.id),
+						eq(account.providerId, "github"),
+					),
+				)
+				.limit(1),
+			organizationId
+				? db
+						.select({
+							provider: integrations.provider,
+							label: integrations.label,
+						})
+						.from(integrations)
+						.where(eq(integrations.organizationId, organizationId))
+				: Promise.resolve([]),
+			organizationId
+				? db
+						.select({ id: repos.id })
+						.from(repos)
+						.where(eq(repos.organizationId, organizationId))
+				: Promise.resolve([]),
+			organizationId ? getOrgAlertRules(organizationId) : Promise.resolve([]),
+			organizationId
+				? getOrgPlan(organizationId)
+				: Promise.resolve("free" as const),
+		],
+	);
 
 	const byProvider = new Map(connected.map((r) => [r.provider, r.label]));
 
@@ -70,6 +78,7 @@ export const getIntegrationsOverview = createServerFn({
 		emailDigest: {
 			enabled: rules.find((r) => r.key === "weekly_digest")?.enabled ?? false,
 		},
+		plan,
 	};
 });
 
@@ -80,6 +89,13 @@ export const getIntegrationAuthorizeUrl = createServerFn({ method: "GET" })
 		const session = await ensureSession();
 		const organizationId = session.session.activeOrganizationId;
 		if (!organizationId) throw new Error("No active organization");
+
+		const plan = await getOrgPlan(organizationId);
+		if (!isPro(plan)) {
+			throw new Error(
+				"Slack and Discord alerts are a Pro feature. Upgrade to connect.",
+			);
+		}
 
 		const state = signOAuthState(organizationId);
 		return provider === "slack"

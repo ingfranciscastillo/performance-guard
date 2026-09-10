@@ -16,6 +16,7 @@ import {
 	pickServeScript,
 } from "@/lib/github";
 import type { Action, MetricKey, Severity } from "@/lib/mock-data";
+import { FREE_REPO_LIMIT, getOrgPlan, isPro } from "@/lib/plan";
 import { vitalgateWorkflowYaml } from "@/lib/workflow-template";
 
 async function getGithubAccessToken(userId: string): Promise<string> {
@@ -231,6 +232,23 @@ export const connectRepositories = createServerFn({ method: "POST" })
 			throw new Error(
 				"No active organization. Set one from Settings before connecting repos.",
 			);
+		}
+
+		const plan = await getOrgPlan(organizationId);
+		if (!isPro(plan)) {
+			const existing = await db
+				.select({ githubRepoId: repos.githubRepoId })
+				.from(repos)
+				.where(eq(repos.organizationId, organizationId));
+			const existingIds = new Set(existing.map((r) => r.githubRepoId));
+			// Reconnecting an already-connected repo (to regenerate its workflow)
+			// isn't a new connection, so it doesn't count against the limit.
+			const newCount = data.repos.filter((r) => !existingIds.has(r.id)).length;
+			if (existing.length + newCount > FREE_REPO_LIMIT) {
+				throw new Error(
+					`The Free plan includes ${FREE_REPO_LIMIT} repository. Upgrade to Pro to connect more.`,
+				);
+			}
 		}
 
 		const accessToken = await getGithubAccessToken(session.user.id);

@@ -57,6 +57,13 @@
       "when": 1788989297019,
       "tag": "0007_wealthy_luke_cage",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789009533972,
+      "tag": "0008_dizzy_jackal",
+      "breakpoints": true
     }
   ]
 }

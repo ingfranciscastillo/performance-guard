@@ -8,18 +8,21 @@ import {
 	useQueryClient,
 	useSuspenseQuery,
 } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import toast from "react-hot-toast";
 import { AppShell } from "@/components/app-shell";
 import { Reveal } from "@/components/reveal";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { setAlertRuleEnabled } from "@/lib/alert-rules.functions";
 import { alertRulesQueryOptions } from "@/lib/alert-rules.queries";
 import { orgAlertsQueryOptions } from "@/lib/alerts.queries";
+import { authClient } from "@/lib/auth-client";
 import { timeAgo } from "@/lib/format";
 import { EASE_IN, staggerContainer, staggerItem } from "@/lib/motion";
+import { isPro, PRO_ONLY_ALERT_RULES } from "@/lib/plan";
 
 const channelIcon = {
 	slack: SlackLogoIcon,
@@ -40,8 +43,10 @@ export const Route = createFileRoute("/_authenticated/alerts")({
 function Alerts() {
 	const { data: alerts } = useSuspenseQuery(orgAlertsQueryOptions());
 	const { data: rules } = useSuspenseQuery(alertRulesQueryOptions());
+	const { data: org } = authClient.useActiveOrganization();
 	const queryClient = useQueryClient();
 	const reduce = useReducedMotion();
+	const pro = isPro(org?.plan);
 
 	const toggleRule = useMutation({
 		mutationFn: setAlertRuleEnabled,
@@ -120,8 +125,8 @@ function Alerts() {
 					<Card className="p-5">
 						<h2 className="font-semibold">Alert rules</h2>
 						<p className="mt-1 text-xs text-muted-foreground">
-							Only "Budget violation" actually fires today. The rest save your
-							preference for when real evaluation and delivery channels land.
+							Budget violation is on every plan. Regression detection, score
+							thresholds, and the weekly digest are Pro features.
 						</p>
 						<motion.ul
 							className="mt-4 space-y-4"
@@ -129,29 +134,47 @@ function Alerts() {
 							initial="hidden"
 							animate="show"
 						>
-							{rules.map((r) => (
-								<motion.li
-									key={r.key}
-									variants={staggerItem(reduce)}
-									className="flex items-start justify-between gap-4"
-								>
-									<div>
-										<div className="text-sm font-medium">{r.label}</div>
-										<div className="text-xs text-muted-foreground">
-											{r.desc}
+							{rules.map((r) => {
+								const locked = !pro && PRO_ONLY_ALERT_RULES.includes(r.key);
+								return (
+									<motion.li
+										key={r.key}
+										variants={staggerItem(reduce)}
+										className="flex items-start justify-between gap-4"
+									>
+										<div>
+											<div className="flex items-center gap-2">
+												<span className="text-sm font-medium">{r.label}</span>
+												{locked && (
+													<span className="rounded-full bg-brand/15 text-brand px-2 py-0.5 text-[10px] font-medium">
+														Pro
+													</span>
+												)}
+											</div>
+											<div className="text-xs text-muted-foreground">
+												{r.desc}
+											</div>
 										</div>
-									</div>
-									<Switch
-										checked={r.enabled}
-										disabled={toggleRule.isPending}
-										onCheckedChange={(enabled) =>
-											toggleRule.mutate({
-												data: { rule: r.key, enabled: Boolean(enabled) },
-											})
-										}
-									/>
-								</motion.li>
-							))}
+										{locked ? (
+											<Link to="/pricing">
+												<Button variant="outline" size="sm">
+													Upgrade
+												</Button>
+											</Link>
+										) : (
+											<Switch
+												checked={r.enabled}
+												disabled={toggleRule.isPending}
+												onCheckedChange={(enabled) =>
+													toggleRule.mutate({
+														data: { rule: r.key, enabled: Boolean(enabled) },
+													})
+												}
+											/>
+										)}
+									</motion.li>
+								);
+							})}
 						</motion.ul>
 					</Card>
 				</Reveal>

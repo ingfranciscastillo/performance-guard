@@ -8,6 +8,7 @@ import {
 } from "@/lib/alert-rules.server";
 import { ensureSession } from "@/lib/auth.functions";
 import type { AlertRuleKey } from "@/lib/mock-data";
+import { getOrgPlan, isPro, PRO_ONLY_ALERT_RULES } from "@/lib/plan";
 
 export type { AlertRuleItem };
 
@@ -29,6 +30,15 @@ export const setAlertRuleEnabled = createServerFn({ method: "POST" })
 		const session = await ensureSession();
 		const organizationId = session.session.activeOrganizationId;
 		if (!organizationId) throw new Error("No active organization");
+
+		if (data.enabled && PRO_ONLY_ALERT_RULES.includes(data.rule)) {
+			const plan = await getOrgPlan(organizationId);
+			if (!isPro(plan)) {
+				throw new Error(
+					"This alert rule is a Pro feature. Upgrade to enable it.",
+				);
+			}
+		}
 
 		await db
 			.insert(alertRules)

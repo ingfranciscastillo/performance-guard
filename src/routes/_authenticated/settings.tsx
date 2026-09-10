@@ -30,6 +30,7 @@ import type { IntegrationProvider } from "@/lib/mock-data";
 import { staggerContainer, staggerItem } from "@/lib/motion";
 import { setNotificationPref } from "@/lib/notification-prefs.functions";
 import { notificationPrefsQueryOptions } from "@/lib/notification-prefs.queries";
+import { FREE_REPO_LIMIT, isPro } from "@/lib/plan";
 import { orgReposQueryOptions } from "@/lib/repos.queries";
 
 export const Route = createFileRoute("/_authenticated/settings")({
@@ -166,12 +167,15 @@ function IntegrationCardShell({
 	name,
 	connected,
 	desc,
+	proLocked,
 	children,
 }: {
 	icon: ComponentType<{ className?: string }>;
 	name: string;
 	connected: boolean;
 	desc: string;
+	/** Shows a "Pro" badge instead of "Connected" — the org can see the card but can't connect yet. */
+	proLocked?: boolean;
 	children: React.ReactNode;
 }) {
 	return (
@@ -186,6 +190,11 @@ function IntegrationCardShell({
 						{connected && (
 							<span className="animate-badge-in rounded-full bg-success/15 text-success px-2 py-0.5 text-[10px]">
 								Connected
+							</span>
+						)}
+						{!connected && proLocked && (
+							<span className="rounded-full bg-brand/15 text-brand px-2 py-0.5 text-[10px] font-medium">
+								Pro
 							</span>
 						)}
 					</div>
@@ -283,10 +292,13 @@ function IntegrationsTab() {
 					icon={SlackLogoIcon}
 					name="Slack"
 					connected={data.slack.connected}
+					proLocked={!isPro(data.plan)}
 					desc={
 						data.slack.connected
 							? (data.slack.label ?? "Connected")
-							: "Not connected"
+							: isPro(data.plan)
+								? "Not connected"
+								: "Upgrade to Pro to connect Slack"
 					}
 				>
 					{data.slack.connected ? (
@@ -298,7 +310,7 @@ function IntegrationsTab() {
 						>
 							Disconnect
 						</Button>
-					) : (
+					) : isPro(data.plan) ? (
 						<Button
 							size="sm"
 							disabled={connecting === "slack"}
@@ -306,6 +318,12 @@ function IntegrationsTab() {
 						>
 							{connecting === "slack" ? "Connecting…" : "Connect"}
 						</Button>
+					) : (
+						<Link to="/pricing">
+							<Button variant="outline" size="sm">
+								Upgrade to Pro
+							</Button>
+						</Link>
 					)}
 				</IntegrationCardShell>
 			</motion.div>
@@ -315,10 +333,13 @@ function IntegrationsTab() {
 					icon={DiscordLogoIcon}
 					name="Discord"
 					connected={data.discord.connected}
+					proLocked={!isPro(data.plan)}
 					desc={
 						data.discord.connected
 							? (data.discord.label ?? "Connected")
-							: "Not connected"
+							: isPro(data.plan)
+								? "Not connected"
+								: "Upgrade to Pro to connect Discord"
 					}
 				>
 					{data.discord.connected ? (
@@ -330,7 +351,7 @@ function IntegrationsTab() {
 						>
 							Disconnect
 						</Button>
-					) : (
+					) : isPro(data.plan) ? (
 						<Button
 							size="sm"
 							disabled={connecting === "discord"}
@@ -338,6 +359,12 @@ function IntegrationsTab() {
 						>
 							{connecting === "discord" ? "Connecting…" : "Connect"}
 						</Button>
+					) : (
+						<Link to="/pricing">
+							<Button variant="outline" size="sm">
+								Upgrade to Pro
+							</Button>
+						</Link>
 					)}
 				</IntegrationCardShell>
 			</motion.div>
@@ -504,27 +531,32 @@ function SecurityCard() {
 	);
 }
 
-const FREE_REPO_LIMIT = 1;
-
 /**
- * There's no billing provider wired up yet — every org is effectively on the
- * Free plan. This shows the org's real repo count against that plan's real
- * limit instead of the fabricated "$149/mo Team" data this tab used to show.
+ * There's no billing provider wired up yet — plan is a manually-set field on
+ * the organization (see src/lib/plan.ts) that the rest of the app already
+ * enforces (repo limit, Slack/Discord, custom alert rules). This just
+ * reflects that real state instead of the fabricated "$149/mo Team" data
+ * this tab used to show.
  */
 function BillingCard() {
 	const { data: repos, isPending } = useQuery(orgReposQueryOptions());
+	const { data: org } = authClient.useActiveOrganization();
 	const repoCount = repos?.length ?? 0;
-	const overLimit = repoCount > FREE_REPO_LIMIT;
+	const pro = isPro(org?.plan);
+	const overLimit = !pro && repoCount > FREE_REPO_LIMIT;
 
 	return (
 		<Card className="p-6 max-w-xl">
 			<div className="flex items-center justify-between">
 				<div>
 					<h2 className="font-semibold">Current plan</h2>
-					<p className="text-sm text-muted-foreground">Free</p>
+					<p className="text-sm text-muted-foreground">
+						{pro ? "Pro" : "Free"}
+					</p>
 				</div>
 				<span className="font-mono text-2xl font-semibold">
-					$0<span className="text-muted-foreground text-sm">/mo</span>
+					{pro ? "$29" : "$0"}
+					<span className="text-muted-foreground text-sm">/mo</span>
 				</span>
 			</div>
 			<div className="mt-6">
@@ -533,10 +565,12 @@ function BillingCard() {
 				</div>
 				<div className="font-mono mt-1">
 					{isPending ? "…" : repoCount}
-					<span className="text-muted-foreground text-sm">
-						{" "}
-						/ {FREE_REPO_LIMIT} included free
-					</span>
+					{!pro && (
+						<span className="text-muted-foreground text-sm">
+							{" "}
+							/ {FREE_REPO_LIMIT} included free
+						</span>
+					)}
 				</div>
 				{overLimit && (
 					<p className="mt-2 text-xs text-warning-foreground">
@@ -545,11 +579,13 @@ function BillingCard() {
 					</p>
 				)}
 			</div>
-			<div className="mt-6">
-				<Link to="/pricing">
-					<Button variant="outline">See plans</Button>
-				</Link>
-			</div>
+			{!pro && (
+				<div className="mt-6">
+					<Link to="/pricing">
+						<Button variant="outline">See plans</Button>
+					</Link>
+				</div>
+			)}
 		</Card>
 	);
 }

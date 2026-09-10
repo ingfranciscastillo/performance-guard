@@ -12,6 +12,7 @@ import {
 } from "@phosphor-icons/react";
 import {
 	useMutation,
+	useQuery,
 	useQueryClient,
 	useSuspenseQuery,
 } from "@tanstack/react-query";
@@ -33,9 +34,12 @@ import {
 	SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { authClient } from "@/lib/auth-client";
 import { connectRepositories } from "@/lib/github.functions";
 import { connectableReposQueryOptions } from "@/lib/github.queries";
 import { EASE_IN, staggerContainer, staggerItem } from "@/lib/motion";
+import { FREE_REPO_LIMIT, isPro } from "@/lib/plan";
+import { orgReposQueryOptions } from "@/lib/repos.queries";
 
 export const Route = createFileRoute("/_authenticated/repositories/new")({
 	// loader must come before head — with both present on a route, head-before-loader
@@ -81,6 +85,8 @@ const PRESETS = [
 
 function ConnectRepo() {
 	const { data: available } = useSuspenseQuery(connectableReposQueryOptions());
+	const { data: connectedRepos } = useQuery(orgReposQueryOptions());
+	const { data: activeOrg } = authClient.useActiveOrganization();
 	const navigate = useNavigate();
 	const [query, setQuery] = useState("");
 	const [org, setOrg] = useState<string>("all");
@@ -109,10 +115,24 @@ function ConnectRepo() {
 		[available, query, org],
 	);
 
+	const pro = isPro(activeOrg?.plan);
+	const connectedCount = connectedRepos?.length ?? 0;
+	const remainingFree = pro
+		? Number.POSITIVE_INFINITY
+		: Math.max(0, FREE_REPO_LIMIT - connectedCount);
+	const atLimit = selected.length >= remainingFree;
+
 	const toggle = (id: string) =>
-		setSelected((s) =>
-			s.includes(id) ? s.filter((x) => x !== id) : [...s, id],
-		);
+		setSelected((s) => {
+			if (s.includes(id)) return s.filter((x) => x !== id);
+			if (s.length >= remainingFree) {
+				toast.error(
+					`Free plan includes ${FREE_REPO_LIMIT} repository — upgrade to Pro to connect more.`,
+				);
+				return s;
+			}
+			return [...s, id];
+		});
 	const allFilteredSelected =
 		filtered.length > 0 && filtered.every((r) => selected.includes(r.id));
 
@@ -242,11 +262,18 @@ function ConnectRepo() {
 													s.filter((id) => !filtered.some((r) => r.id === id)),
 												);
 											} else {
-												setSelected((s) =>
-													Array.from(
+												setSelected((s) => {
+													const merged = Array.from(
 														new Set([...s, ...filtered.map((r) => r.id)]),
-													),
-												);
+													);
+													if (merged.length > remainingFree) {
+														toast.error(
+															`Free plan includes ${FREE_REPO_LIMIT} repository — upgrade to Pro to connect more.`,
+														);
+														return merged.slice(0, remainingFree);
+													}
+													return merged;
+												});
 											}
 										}}
 									>
@@ -287,12 +314,17 @@ function ConnectRepo() {
 													 */}
 													<div
 														className={`flex items-center gap-4 px-5 py-3.5 cursor-pointer transition-colors ${
-															checked ? "bg-primary/5" : "hover:bg-muted/30"
+															checked
+																? "bg-primary/5"
+																: !checked && atLimit
+																	? "opacity-50 hover:bg-transparent"
+																	: "hover:bg-muted/30"
 														}`}
 														onClick={() => toggle(r.id)}
 													>
 														<Checkbox
 															checked={checked}
+															disabled={!checked && atLimit}
 															onCheckedChange={() => toggle(r.id)}
 															onClick={(e) => e.stopPropagation()}
 														/>
@@ -492,6 +524,20 @@ function ConnectRepo() {
 										{selected.length}
 									</span>
 								</div>
+								{!pro && (
+									<p className="mt-2 text-xs text-muted-foreground">
+										Free plan includes {FREE_REPO_LIMIT} repository —{" "}
+										{connectedCount} already connected.{" "}
+										{remainingFree === 0 && (
+											<Link
+												to="/pricing"
+												className="text-primary hover:underline"
+											>
+												Upgrade to Pro
+											</Link>
+										)}
+									</p>
+								)}
 								<Button
 									className="mt-4 w-full"
 									onClick={onConnect}

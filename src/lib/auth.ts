@@ -108,6 +108,22 @@ export const auth = betterAuth({
 		// UI label as display text until real permission checks are designed.
 		organization({
 			allowUserToCreateOrganization: true,
+			schema: {
+				organization: {
+					additionalFields: {
+						// Billing plan for the org. input: false keeps it out of the
+						// create/update organization API — nothing except server-side
+						// code (there's no billing webhook yet, so today that means a
+						// manual DB update) should ever change this.
+						plan: {
+							type: "string",
+							required: true,
+							defaultValue: "free",
+							input: false,
+						},
+					},
+				},
+			},
 		}),
 		tanstackStartCookies(),
 	],
