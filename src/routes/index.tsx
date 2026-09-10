@@ -186,6 +186,10 @@ function LogoStrip() {
 							key={`${slug}-${i}`}
 							src={`https://cdn.simpleicons.org/${slug}`}
 							alt={slug}
+							width={24}
+							height={24}
+							loading="lazy"
+							decoding="async"
 							className="h-6 w-auto shrink-0 opacity-50 grayscale transition hover:opacity-90 hover:grayscale-0"
 						/>
 					))}

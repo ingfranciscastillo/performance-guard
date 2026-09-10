@@ -11,4 +11,4 @@ Disallow: /api/
 # enough to see that tag — Google's own guidance is that this can leave a
 # URL indexed anyway, just with no description, which is worse.
 
-Sitemap: https://performance-guard.vercel.app/sitemap.xml
+Sitemap: https://vitalgate.vercel.app/sitemap.xml

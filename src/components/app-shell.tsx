@@ -207,6 +207,9 @@ export function AppShell({
 							<img
 								src={session.user.image}
 								alt={session.user.name}
+								width={32}
+								height={32}
+								decoding="async"
 								className="size-8 shrink-0 rounded-full object-cover"
 							/>
 						) : (
