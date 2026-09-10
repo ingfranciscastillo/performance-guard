@@ -135,6 +135,14 @@ export function AppShell({
 	const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
 	const initial = session?.user.name?.charAt(0).toUpperCase() ?? "U";
+	// Each page's title icon matches its own sidebar entry instead of a single
+	// icon reused everywhere — falls back to ChartBarIcon for a title-bearing
+	// page with no matching nav item (none today, but detail pages don't pass
+	// title at all so this only ever applies to the six nav routes above).
+	const TitleIcon =
+		nav.find(
+			(item) => pathname === item.to || pathname.startsWith(`${item.to}/`),
+		)?.icon ?? ChartBarIcon;
 
 	return (
 		<div className="flex min-h-dvh w-full bg-background text-foreground">
@@ -149,9 +157,9 @@ export function AppShell({
 
 			<Dialog.Root open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
 				<Dialog.Portal>
-					<Dialog.Overlay className="fixed inset-0 z-40 bg-black/40 lg:hidden" />
+					<Dialog.Overlay className="fixed inset-0 z-40 bg-black/40 duration-200 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:duration-150 data-[state=open]:animate-in data-[state=open]:fade-in-0 lg:hidden" />
 					<Dialog.Content
-						className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-sidebar outline-none lg:hidden"
+						className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border bg-sidebar outline-none duration-300 ease-out data-[state=closed]:animate-out data-[state=closed]:duration-200 data-[state=closed]:ease-in data-[state=closed]:slide-out-to-left data-[state=open]:animate-in data-[state=open]:slide-in-from-left lg:hidden"
 						aria-describedby={undefined}
 					>
 						<Dialog.Title className="sr-only">Navigation menu</Dialog.Title>
@@ -163,9 +171,9 @@ export function AppShell({
 								<button
 									type="button"
 									aria-label="Close menu"
-									className="rounded-md p-1.5 text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+									className="group rounded-md p-1.5 text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 								>
-									<XIcon className="size-4" />
+									<XIcon className="size-4 transition-transform duration-150 ease-out group-hover:scale-110 group-active:scale-90" />
 								</button>
 							</Dialog.Close>
 						</div>
@@ -183,9 +191,9 @@ export function AppShell({
 						type="button"
 						aria-label="Open menu"
 						onClick={() => setMobileNavOpen(true)}
-						className="-ml-1.5 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+						className="group -ml-1.5 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
 					>
-						<ListIcon className="size-5" />
+						<ListIcon className="size-5 transition-transform duration-150 ease-out group-hover:scale-110 group-active:scale-90" />
 					</button>
 					<div className="lg:hidden">
 						<Logo />
@@ -218,7 +226,7 @@ export function AppShell({
 
 				{title && (
 					<div className="flex items-center gap-3 px-4 pb-2 pt-6 lg:px-8">
-						<ChartBarIcon className="size-4 text-muted-foreground" />
+						<TitleIcon className="size-4 text-muted-foreground" />
 						<h1 className="text-xl font-semibold tracking-tight">{title}</h1>
 					</div>
 				)}

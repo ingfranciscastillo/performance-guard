@@ -24,11 +24,11 @@ export function NotificationBell() {
 							? `Notifications, ${nonInfo.length} unread`
 							: "Notifications"
 					}
-					className="relative"
+					className="group relative"
 				>
-					<BellIcon className="size-4" />
+					<BellIcon className="size-4 transition-transform duration-150 ease-out group-hover:animate-bell-ring" />
 					{nonInfo.length > 0 && (
-						<span className="absolute right-1 top-1 grid h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[9px] font-semibold text-destructive-foreground">
+						<span className="absolute right-1 top-1 grid h-4 min-w-4 animate-badge-in place-items-center rounded-full bg-destructive px-1 text-[9px] font-semibold text-destructive-foreground">
 							{nonInfo.length > 9 ? "9+" : nonInfo.length}
 						</span>
 					)}
@@ -38,7 +38,7 @@ export function NotificationBell() {
 				<Popover.Content
 					align="end"
 					sideOffset={8}
-					className="z-50 w-80 border border-border bg-popover text-popover-foreground shadow-md outline-none"
+					className="z-50 w-80 origin-(--radix-popover-content-transform-origin) border border-border bg-popover text-popover-foreground shadow-md outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=closed]:duration-150 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=open]:duration-[250ms]"
 				>
 					<div className="border-b border-border px-4 py-3">
 						<h2 className="text-sm font-semibold">Notifications</h2>
