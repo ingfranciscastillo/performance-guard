@@ -5,7 +5,9 @@ import { db } from "@/db";
 import { account, budgets, repos } from "@/db/schema";
 import { ensureSession } from "@/lib/auth.functions";
 import {
+	type CommitWorkflowResult,
 	commitWorkflowFile,
+	deleteWorkflowFile,
 	detectPackageManager,
 	type GhRepo,
 	getPackageJson,
@@ -158,6 +160,68 @@ function getVitalgateOrigin(): string {
 	return process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
 }
 
+interface RegenerateWorkflowRepo {
+	/** GitHub's numeric repo id, e.g. "1357877390" — not the DB row id. */
+	githubRepoId: string;
+	fullName: string;
+	defaultBranch: string;
+}
+
+/**
+ * Detects package manager/start script/port fresh from the repo's own files
+ * and (re)commits the workflow. Shared by connectRepositories (both the
+ * brand-new and the already-connected/reconnect branches) and
+ * updateRepoEnvVars, since neither startScript/port/packageManager is
+ * persisted anywhere — each call re-derives them the same way a first
+ * connect would, so a repo's own package.json staying the source of truth
+ * doesn't drift from what's actually committed.
+ */
+async function regenerateWorkflow(
+	accessToken: string,
+	repo: RegenerateWorkflowRepo,
+	envVarNames: string[],
+	vitalgateOrigin: string,
+	overrides: { startScript?: string; port?: number } = {},
+): Promise<CommitWorkflowResult> {
+	const packageManager = await detectPackageManager(accessToken, repo.fullName);
+	const pkg = await getPackageJson(accessToken, repo.fullName);
+
+	const startScript =
+		overrides.startScript?.trim() ||
+		pickServeScript(pkg?.scripts ?? {}) ||
+		FALLBACK_START_SCRIPT;
+	const port = overrides.port ?? DEFAULT_PORT;
+
+	const pnpmVersionMatch = pkg?.packageManager?.match(/^pnpm@(.+)$/);
+	const pnpmVersion = pnpmVersionMatch?.[1] ?? "latest";
+
+	const yarnVersionMatch = pkg?.packageManager?.match(/^yarn@(.+)$/);
+	const yarnVersion = yarnVersionMatch?.[1];
+	const yarnIsBerry =
+		packageManager === "yarn"
+			? yarnVersion
+				? !yarnVersion.startsWith("1.")
+				: await isYarnBerryLockfile(accessToken, repo.fullName)
+			: false;
+
+	return commitWorkflowFile(
+		accessToken,
+		repo.fullName,
+		vitalgateWorkflowYaml({
+			defaultBranch: repo.defaultBranch,
+			githubRepoId: repo.githubRepoId,
+			packageManager,
+			pnpmVersion,
+			yarnIsBerry,
+			yarnVersion,
+			startScript,
+			port,
+			envVarNames,
+			vitalgateOrigin,
+		}),
+	);
+}
+
 export const connectRepositories = createServerFn({ method: "POST" })
 	.validator((data: ConnectRepositoriesInput) => data)
 	.handler(async ({ data }) => {
@@ -233,62 +297,19 @@ export const connectRepositories = createServerFn({ method: "POST" })
 				if (!existing) continue; // shouldn't happen, but nothing to regenerate against
 			}
 
-			// The package manager comes from the repo's own lockfile — it isn't a
-			// user preference, it's a fact about the project (installing with the
-			// wrong one breaks against the committed lockfile).
-			const packageManager = await detectPackageManager(
-				accessToken,
-				repo.fullName,
-			);
-			const pkg = await getPackageJson(accessToken, repo.fullName);
-
-			// A user-typed override applies to every repo in this batch; otherwise
-			// detect per-repo from package.json (each repo may serve differently).
-			const startScript =
-				data.startScript?.trim() ||
-				pickServeScript(pkg?.scripts ?? {}) ||
-				FALLBACK_START_SCRIPT;
-			const port = data.port ?? DEFAULT_PORT;
-
-			// pnpm/setup requires an exact version — it only reads one from
-			// package.json's "packageManager" field itself, and most repos don't
-			// declare one. Use the repo's pin when present (matches its lockfile
-			// exactly), else "latest", an npm dist-tag pnpm/setup resolves itself.
-			const pnpmVersionMatch = pkg?.packageManager?.match(/^pnpm@(.+)$/);
-			const pnpmVersion = pnpmVersionMatch?.[1] ?? "latest";
-
-			// Yarn Classic (v1) and Berry (v2+) are mutually incompatible and
-			// Corepack's un-pinned fallback is always Classic — wrong whenever the
-			// repo actually uses Berry. Trust an explicit pin when there is one
-			// (matches whatever generated the lockfile); otherwise sniff the
-			// lockfile itself, the only reliable signal when nothing is pinned.
-			const yarnVersionMatch = pkg?.packageManager?.match(/^yarn@(.+)$/);
-			const yarnVersion = yarnVersionMatch?.[1];
-			const yarnIsBerry =
-				packageManager === "yarn"
-					? yarnVersion
-						? !yarnVersion.startsWith("1.")
-						: await isYarnBerryLockfile(accessToken, repo.fullName)
-					: false;
-
 			// Best-effort: a repo we can't write the workflow to (e.g. the OAuth
 			// token doesn't cover it, or GitHub API hiccup) still stays connected
 			// in Vitalgate — the user can add the workflow by hand.
-			const workflowResult = await commitWorkflowFile(
+			const workflowResult = await regenerateWorkflow(
 				accessToken,
-				repo.fullName,
-				vitalgateWorkflowYaml({
-					defaultBranch: repo.defaultBranch,
+				{
 					githubRepoId: repo.id,
-					packageManager,
-					pnpmVersion,
-					yarnIsBerry,
-					yarnVersion,
-					startScript,
-					port,
-					envVarNames,
-					vitalgateOrigin,
-				}),
+					fullName: repo.fullName,
+					defaultBranch: repo.defaultBranch,
+				},
+				envVarNames,
+				vitalgateOrigin,
+				{ startScript: data.startScript, port: data.port },
 			);
 			if (workflowResult.status === "created") workflowsAdded++;
 			if (workflowResult.status === "updated") workflowsUpdated++;
@@ -298,4 +319,76 @@ export const connectRepositories = createServerFn({ method: "POST" })
 		}
 
 		return { connected, workflowsAdded, workflowsUpdated, workflowErrors };
+	});
+
+interface UpdateRepoEnvVarsInput {
+	repoId: string;
+	envVarNames: string[];
+}
+
+/** Edits one already-connected repo's forwarded env var names and recommits its workflow — the Settings tab on a repo's detail page. */
+export const updateRepoEnvVars = createServerFn({ method: "POST" })
+	.validator((data: UpdateRepoEnvVarsInput) => data)
+	.handler(async ({ data }) => {
+		const session = await ensureSession();
+		const organizationId = session.session.activeOrganizationId;
+		if (!organizationId) throw new Error("No active organization");
+
+		// Scoped to the active org, not just the id — a UUID guess from
+		// another org's repo must not be editable.
+		const [repo] = await db
+			.select({
+				id: repos.id,
+				githubRepoId: repos.githubRepoId,
+				fullName: repos.fullName,
+				defaultBranch: repos.defaultBranch,
+			})
+			.from(repos)
+			.where(
+				and(
+					eq(repos.id, data.repoId),
+					eq(repos.organizationId, organizationId),
+				),
+			)
+			.limit(1);
+		if (!repo) throw new Error("Repository not found");
+
+		const envVarNames = sanitizeEnvVarNames(data.envVarNames);
+		await db.update(repos).set({ envVarNames }).where(eq(repos.id, repo.id));
+
+		const accessToken = await getGithubAccessToken(session.user.id);
+		const workflowResult = await regenerateWorkflow(
+			accessToken,
+			repo,
+			envVarNames,
+			getVitalgateOrigin(),
+		);
+
+		return { envVarNames, workflowResult };
+	});
+
+/**
+ * Removes a repo from Vitalgate: the row (cascades to its budgets, PR
+ * history, and alerts — see the schema's onDelete: "cascade" FKs) and, best
+ * effort, the workflow file it committed. Deliberately hard-deletes rather
+ * than soft-deleting/archiving: there's no "reconnect and get your old
+ * budgets back" feature, disconnecting is meant to be a clean break.
+ */
+export const disconnectRepository = createServerFn({ method: "POST" })
+	.validator((repoId: string) => repoId)
+	.handler(async ({ data: repoId }) => {
+		const session = await ensureSession();
+		const organizationId = session.session.activeOrganizationId;
+		if (!organizationId) throw new Error("No active organization");
+
+		const [repo] = await db
+			.delete(repos)
+			.where(
+				and(eq(repos.id, repoId), eq(repos.organizationId, organizationId)),
+			)
+			.returning({ fullName: repos.fullName });
+		if (!repo) throw new Error("Repository not found");
+
+		const accessToken = await getGithubAccessToken(session.user.id);
+		await deleteWorkflowFile(accessToken, repo.fullName);
 	});

@@ -1,5 +1,21 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import {
+	DiscordLogoIcon,
+	EnvelopeSimpleIcon,
+	SlackLogoIcon,
+} from "@phosphor-icons/react";
+import {
+	useMutation,
+	useQueryClient,
+	useSuspenseQuery,
+} from "@tanstack/react-query";
+import {
+	createFileRoute,
+	Link,
+	notFound,
+	useNavigate,
+} from "@tanstack/react-router";
+import { useState } from "react";
+import toast from "react-hot-toast";
 import {
 	Area,
 	AreaChart,
@@ -10,11 +26,24 @@ import {
 } from "recharts";
 import { AppShell } from "@/components/app-shell";
 import { StatusBadge } from "@/components/status-badge";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { timeAgo } from "@/lib/format";
+import {
+	disconnectRepository,
+	updateRepoEnvVars,
+} from "@/lib/github.functions";
 import { formatMetric, METRIC_META } from "@/lib/mock-data";
 import { repoDetailQueryOptions } from "@/lib/repo-detail.queries";
+
+const channelIcon = {
+	slack: SlackLogoIcon,
+	discord: DiscordLogoIcon,
+	email: EnvelopeSimpleIcon,
+} as const;
 
 export const Route = createFileRoute("/_authenticated/repositories/$repoId")({
 	// loader must come before head — see pulls/$prId.tsx for why.
@@ -37,9 +66,42 @@ export const Route = createFileRoute("/_authenticated/repositories/$repoId")({
 function RepoDetail() {
 	const { repoId } = Route.useParams();
 	const { data: repo } = useSuspenseQuery(repoDetailQueryOptions(repoId));
+	const queryClient = useQueryClient();
+	const navigate = useNavigate();
 	// The loader already redirects to notFoundComponent when null; this just
 	// narrows the type for TS since this query call is independent of it.
 	if (!repo) throw notFound();
+
+	const [envVarNames, setEnvVarNames] = useState(repo.envVarNames.join(", "));
+	const [confirmingDisconnect, setConfirmingDisconnect] = useState(false);
+
+	const saveEnvVars = useMutation({
+		mutationFn: updateRepoEnvVars,
+		onSuccess: (result) => {
+			queryClient.invalidateQueries({ queryKey: ["repos"] });
+			if (result.workflowResult.status === "error") {
+				toast.error(
+					`Saved, but couldn't update the workflow: ${result.workflowResult.message}`,
+				);
+			} else {
+				toast.success("Environment variables updated");
+			}
+		},
+		onError: () => toast.error("Could not update environment variables"),
+	});
+
+	const disconnect = useMutation({
+		mutationFn: disconnectRepository,
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: ["repos"] });
+			toast.success(`${repo.fullName} disconnected`);
+			navigate({ to: "/repositories" });
+		},
+		onError: () => {
+			toast.error("Could not disconnect repository");
+			setConfirmingDisconnect(false);
+		},
+	});
 
 	return (
 		<AppShell>
@@ -323,20 +385,126 @@ function RepoDetail() {
 				<TabsContent value="history" className="mt-6">
 					<Card className="p-5">
 						<h2 className="font-semibold">Audit history</h2>
-						<p className="mt-2 text-sm text-muted-foreground">
-							Audit logging isn't wired up yet — this repo has no tracked
-							history events.
-						</p>
+						{repo.alerts.length === 0 ? (
+							<p className="mt-4 text-sm text-muted-foreground text-center py-6">
+								No alerts recorded yet for this repo. A required budget
+								violation on a PR shows up here.
+							</p>
+						) : (
+							<ul className="mt-4 divide-y divide-border">
+								{repo.alerts.map((a) => {
+									const Icon = channelIcon[a.channel];
+									return (
+										<li key={a.id} className="flex gap-4 py-4">
+											<div
+												className={`h-8 w-8 rounded-md grid place-items-center shrink-0 ${a.level === "critical" ? "bg-destructive/15 text-destructive" : a.level === "warning" ? "bg-warning/20 text-warning-foreground" : "bg-muted text-muted-foreground"}`}
+											>
+												<Icon className="h-4 w-4" />
+											</div>
+											<div className="flex-1 min-w-0">
+												<div className="flex items-center gap-2">
+													<span className="font-medium text-sm">{a.title}</span>
+													<span
+														className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${a.level === "critical" ? "bg-destructive/15 text-destructive" : a.level === "warning" ? "bg-warning/20 text-warning-foreground" : "bg-muted text-muted-foreground"}`}
+													>
+														{a.level}
+													</span>
+												</div>
+												<p className="text-sm text-muted-foreground mt-0.5">
+													{a.message}
+												</p>
+												<div className="mt-1 font-mono text-[10px] text-muted-foreground">
+													{a.channel} · {timeAgo(a.createdAt)}
+												</div>
+											</div>
+										</li>
+									);
+								})}
+							</ul>
+						)}
 					</Card>
 				</TabsContent>
 
 				<TabsContent value="settings" className="mt-6 space-y-4">
 					<Card className="p-5">
-						<h2 className="font-semibold">Repository settings</h2>
-						<p className="text-sm text-muted-foreground mt-1">
-							Branch protection, runner region, and webhook delivery preferences
-							aren't configurable yet.
+						<h2 className="font-semibold text-sm">Environment variables</h2>
+						<p className="mt-1 text-xs text-muted-foreground">
+							Comma-separated names of repo secrets the started server needs to
+							boot — not their values. Each becomes a{" "}
+							<code className="font-mono">secrets.NAME</code> reference in the
+							committed workflow, so the secret must already exist in this
+							repo's own GitHub settings.
 						</p>
+						<div className="mt-4 space-y-1.5">
+							<Label htmlFor="env-var-names" className="text-sm">
+								Secret names
+							</Label>
+							<Input
+								id="env-var-names"
+								placeholder="DATABASE_URL, GROQ_API_KEY"
+								value={envVarNames}
+								onChange={(e) => setEnvVarNames(e.target.value)}
+								className="font-mono text-xs"
+							/>
+						</div>
+						<Button
+							className="mt-4"
+							size="sm"
+							disabled={saveEnvVars.isPending}
+							onClick={() =>
+								saveEnvVars.mutate({
+									data: {
+										repoId,
+										envVarNames: envVarNames
+											.split(",")
+											.map((n) => n.trim())
+											.filter(Boolean),
+									},
+								})
+							}
+						>
+							{saveEnvVars.isPending ? "Saving…" : "Save"}
+						</Button>
+					</Card>
+
+					<Card className="p-5 border-destructive/30">
+						<h2 className="font-semibold text-sm">Danger zone</h2>
+						<p className="mt-1 text-xs text-muted-foreground">
+							Disconnecting removes {repo.fullName} from Vitalgate, deleting its
+							budgets, PR history, and alerts. This can't be undone. The
+							committed workflow file is removed from the repo on a best-effort
+							basis.
+						</p>
+						{confirmingDisconnect ? (
+							<div className="mt-4 flex items-center gap-3">
+								<span className="text-sm font-medium">Are you sure?</span>
+								<Button
+									variant="destructive"
+									size="sm"
+									disabled={disconnect.isPending}
+									onClick={() => disconnect.mutate({ data: repoId })}
+								>
+									{disconnect.isPending ? "Disconnecting…" : "Yes, disconnect"}
+								</Button>
+								<Button
+									variant="ghost"
+									size="sm"
+									disabled={disconnect.isPending}
+									onClick={() => setConfirmingDisconnect(false)}
+								>
+									Cancel
+								</Button>
+							</div>
+						) : (
+							<Button
+								className="mt-4"
+								variant="destructive"
+								size="sm"
+								onClick={() => setConfirmingDisconnect(true)}
+							>
+								Disconnect repository
+							</Button>
+						)}
 					</Card>
 				</TabsContent>
 			</Tabs>

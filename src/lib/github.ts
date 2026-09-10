@@ -290,3 +290,52 @@ export async function commitWorkflowFile(
 	if (existingSha) return { status: "updated" };
 	return { status: "created" };
 }
+
+/**
+ * Removes the workflow file this app committed, as part of disconnecting a
+ * repo — otherwise its next PR keeps calling /api/ingest and failing with
+ * "not connected" instead of simply not running. Best-effort and silent:
+ * only deletes when the file still carries WORKFLOW_MANAGED_MARKER (never a
+ * user's own hand-written workflow at that path), and a missing file or a
+ * token without access is treated the same as success — disconnecting from
+ * Vitalgate's own side shouldn't fail just because GitHub cleanup couldn't.
+ */
+export async function deleteWorkflowFile(
+	accessToken: string,
+	fullName: string,
+): Promise<void> {
+	const path = ".github/workflows/budgetly.yml";
+	const url = `https://api.github.com/repos/${fullName}/contents/${path}`;
+	const headers = {
+		Authorization: `Bearer ${accessToken}`,
+		Accept: "application/vnd.github+json",
+		"X-GitHub-Api-Version": "2022-11-28",
+	};
+
+	try {
+		const existing = await fetch(url, { headers });
+		if (existing.status !== 200) return;
+
+		const file = (await existing.json()) as {
+			content: string;
+			encoding: string;
+			sha: string;
+		};
+		const content =
+			file.encoding === "base64"
+				? Buffer.from(file.content, "base64").toString("utf8")
+				: "";
+		if (!content.startsWith(WORKFLOW_MANAGED_MARKER)) return;
+
+		await fetch(url, {
+			method: "DELETE",
+			headers: { ...headers, "content-type": "application/json" },
+			body: JSON.stringify({
+				message: "Remove Vitalgate performance budget workflow",
+				sha: file.sha,
+			}),
+		});
+	} catch {
+		// Best-effort — see doc comment above.
+	}
+}
