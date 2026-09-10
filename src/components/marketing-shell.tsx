@@ -17,13 +17,13 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 						<a href="#features" className={linkUnderline}>
 							Features
 						</a>
-						<a href="#how" className={linkUnderline}>
+						<a href="/#how" className={linkUnderline}>
 							How it works
 						</a>
 						<Link to="/pricing" className={linkUnderline}>
 							Pricing
 						</Link>
-						<a href="#faq" className={linkUnderline}>
+						<a href="/#faq" className={linkUnderline}>
 							FAQ
 						</a>
 					</nav>
