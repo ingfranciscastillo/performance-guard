@@ -2,12 +2,16 @@ import { PlusIcon } from "@phosphor-icons/react";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useState } from "react";
 import { AppShell } from "@/components/app-shell";
+import { RepoLimitDialog } from "@/components/repo-limit-dialog";
 import { Reveal } from "@/components/reveal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { authClient } from "@/lib/auth-client";
 import { timeAgo } from "@/lib/format";
 import { EASE_IN, staggerContainer, staggerItem } from "@/lib/motion";
+import { FREE_REPO_LIMIT, isPro } from "@/lib/plan";
 import { orgReposQueryOptions } from "@/lib/repos.queries";
 
 export const Route = createFileRoute("/_authenticated/repositories/")({
@@ -19,20 +23,35 @@ export const Route = createFileRoute("/_authenticated/repositories/")({
 
 function Repos() {
 	const { data: repos } = useSuspenseQuery(orgReposQueryOptions());
+	const { data: activeOrg } = authClient.useActiveOrganization();
 	const reduce = useReducedMotion();
+	const [showLimitDialog, setShowLimitDialog] = useState(false);
+
+	const atLimit = !isPro(activeOrg?.plan) && repos.length >= FREE_REPO_LIMIT;
 
 	return (
 		<AppShell title="Repositories">
+			<RepoLimitDialog
+				open={showLimitDialog}
+				onOpenChange={setShowLimitDialog}
+			/>
 			<div className="flex items-center justify-between mb-5">
 				<p className="text-sm text-muted-foreground">
 					{repos.length} repositories connected via GitHub App.
 				</p>
-				<Link to="/repositories/new">
-					<Button className="group">
+				{atLimit ? (
+					<Button className="group" onClick={() => setShowLimitDialog(true)}>
 						<PlusIcon className="h-4 w-4 mr-1.5 transition-transform duration-150 ease-out group-hover:rotate-90" />
 						Connect repo
 					</Button>
-				</Link>
+				) : (
+					<Link to="/repositories/new">
+						<Button className="group">
+							<PlusIcon className="h-4 w-4 mr-1.5 transition-transform duration-150 ease-out group-hover:rotate-90" />
+							Connect repo
+						</Button>
+					</Link>
+				)}
 			</div>
 			{repos.length === 0 ? (
 				<Card className="p-10 text-center">

@@ -21,6 +21,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { AppShell } from "@/components/app-shell";
+import { RepoLimitDialog } from "@/components/repo-limit-dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -98,6 +99,7 @@ function ConnectRepo() {
 	const [port, setPort] = useState("");
 	const [envVarNames, setEnvVarNames] = useState("");
 	const [shakeSummary, setShakeSummary] = useState(false);
+	const [showLimitDialog, setShowLimitDialog] = useState(false);
 	const reduce = useReducedMotion();
 
 	const orgs = useMemo(
@@ -126,9 +128,7 @@ function ConnectRepo() {
 		setSelected((s) => {
 			if (s.includes(id)) return s.filter((x) => x !== id);
 			if (s.length >= remainingFree) {
-				toast.error(
-					`Free plan includes ${FREE_REPO_LIMIT} repository — upgrade to Pro to connect more.`,
-				);
+				setShowLimitDialog(true);
 				return s;
 			}
 			return [...s, id];
@@ -193,6 +193,10 @@ function ConnectRepo() {
 
 	return (
 		<AppShell title="Connect a repository">
+			<RepoLimitDialog
+				open={showLimitDialog}
+				onOpenChange={setShowLimitDialog}
+			/>
 			<div className="mb-6">
 				<Link
 					to="/repositories"
@@ -267,9 +271,7 @@ function ConnectRepo() {
 														new Set([...s, ...filtered.map((r) => r.id)]),
 													);
 													if (merged.length > remainingFree) {
-														toast.error(
-															`Free plan includes ${FREE_REPO_LIMIT} repository — upgrade to Pro to connect more.`,
-														);
+														setShowLimitDialog(true);
 														return merged.slice(0, remainingFree);
 													}
 													return merged;
