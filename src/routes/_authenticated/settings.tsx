@@ -1,12 +1,14 @@
 import {
+	DesktopIcon,
 	DiscordLogoIcon,
 	EnvelopeSimpleIcon,
 	GithubLogoIcon,
 	SlackLogoIcon,
+	XIcon,
 } from "@phosphor-icons/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { ComponentType } from "react";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -21,17 +23,19 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { setInitialPassword } from "@/lib/auth.functions";
 import { authClient } from "@/lib/auth-client";
+import { timeAgo } from "@/lib/format";
 import {
 	disconnectIntegration,
 	getIntegrationAuthorizeUrl,
 } from "@/lib/integrations.functions";
 import { integrationsOverviewQueryOptions } from "@/lib/integrations.queries";
 import type { IntegrationProvider } from "@/lib/mock-data";
-import { staggerContainer, staggerItem } from "@/lib/motion";
+import { EASE_IN, EASE_OUT, staggerContainer, staggerItem } from "@/lib/motion";
 import { setNotificationPref } from "@/lib/notification-prefs.functions";
 import { notificationPrefsQueryOptions } from "@/lib/notification-prefs.queries";
 import { FREE_REPO_LIMIT, isPro } from "@/lib/plan";
 import { orgReposQueryOptions } from "@/lib/repos.queries";
+import { parseUserAgent } from "@/lib/user-agent";
 
 export const Route = createFileRoute("/_authenticated/settings")({
 	head: () => ({ meta: [{ title: "Settings: Vitalgate" }] }),
@@ -532,6 +536,171 @@ function SecurityCard() {
 }
 
 /**
+ * better-auth's /list-sessions requires a "fresh" session (created within
+ * the last 24h — see session config's freshAge) and throws
+ * SESSION_NOT_FRESH otherwise. Our only sign-in is GitHub OAuth, so a user
+ * who's been in the app for a few days without re-authenticating will hit
+ * that on this tab. revokeOtherSessions doesn't share that requirement, so
+ * the "sign out everywhere else" action still works even when the list
+ * itself can't load — the fallback below leans on that instead of just
+ * showing an error.
+ */
+function SessionsCard() {
+	const queryClient = useQueryClient();
+	const { data: current } = authClient.useSession();
+	const [confirmingRevokeAll, setConfirmingRevokeAll] = useState(false);
+	const [revokingToken, setRevokingToken] = useState<string | null>(null);
+
+	const {
+		data: sessions,
+		isPending,
+		error,
+	} = useQuery({
+		queryKey: ["sessions"],
+		queryFn: async () => {
+			const { data, error } = await authClient.listSessions();
+			if (error) throw new Error(error.message ?? "Could not load sessions");
+			return data;
+		},
+		retry: false,
+	});
+
+	const revokeOne = async (token: string) => {
+		setRevokingToken(token);
+		const { error } = await authClient.revokeSession({ token });
+		setRevokingToken(null);
+		if (error) {
+			toast.error(error.message ?? "Could not revoke session");
+			return;
+		}
+		toast.success("Session revoked");
+		queryClient.invalidateQueries({ queryKey: ["sessions"] });
+	};
+
+	const revokeOthers = useMutation({
+		mutationFn: async () => {
+			const { error } = await authClient.revokeOtherSessions();
+			if (error) throw new Error(error.message ?? "Could not revoke sessions");
+		},
+		onSuccess: () => {
+			toast.success("Signed out of all other devices");
+			queryClient.invalidateQueries({ queryKey: ["sessions"] });
+			setConfirmingRevokeAll(false);
+		},
+		onError: (err: Error) => toast.error(err.message),
+	});
+
+	const others = sessions?.filter((s) => s.token !== current?.session.token);
+
+	return (
+		<Card className="p-6 max-w-xl">
+			<div className="flex items-center justify-between">
+				<h2 className="font-semibold">Active sessions</h2>
+				{(others === undefined || others.length > 0) && (
+					<AnimatePresence mode="wait" initial={false}>
+						{confirmingRevokeAll ? (
+							<motion.div
+								key="confirm"
+								initial={{ opacity: 0, y: -4 }}
+								animate={{ opacity: 1, y: 0 }}
+								exit={{ opacity: 0, y: -4 }}
+								transition={{ duration: 0.15, ease: EASE_OUT }}
+								className="flex items-center gap-2"
+							>
+								<span className="text-xs font-medium">Sure?</span>
+								<Button
+									variant="destructive"
+									size="sm"
+									disabled={revokeOthers.isPending}
+									onClick={() => revokeOthers.mutate()}
+								>
+									{revokeOthers.isPending ? "Signing out…" : "Yes"}
+								</Button>
+								<Button
+									variant="ghost"
+									size="sm"
+									disabled={revokeOthers.isPending}
+									onClick={() => setConfirmingRevokeAll(false)}
+								>
+									Cancel
+								</Button>
+							</motion.div>
+						) : (
+							<motion.div
+								key="trigger"
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								exit={{ opacity: 0 }}
+								transition={{ duration: 0.15, ease: EASE_IN }}
+							>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => setConfirmingRevokeAll(true)}
+								>
+									Sign out of all other devices
+								</Button>
+							</motion.div>
+						)}
+					</AnimatePresence>
+				)}
+			</div>
+
+			{isPending ? (
+				<p className="mt-4 text-sm text-muted-foreground">Loading…</p>
+			) : error ? (
+				<p className="mt-4 text-xs text-muted-foreground">
+					Couldn't load the list — that needs a recent sign-in. You can still
+					sign out of every other device with the button above.
+				</p>
+			) : (
+				<ul className="mt-4 divide-y divide-border">
+					{sessions?.map((s) => {
+						const isCurrent = s.token === current?.session.token;
+						return (
+							<li key={s.id} className="flex items-center gap-3 py-3">
+								<div className="h-9 w-9 shrink-0 rounded-md bg-muted grid place-items-center">
+									<DesktopIcon className="h-4 w-4 text-muted-foreground" />
+								</div>
+								<div className="flex-1 min-w-0">
+									<div className="flex items-center gap-2">
+										<span className="text-sm font-medium truncate">
+											{parseUserAgent(s.userAgent)}
+										</span>
+										{isCurrent && (
+											<span className="rounded-full bg-success/15 text-success px-2 py-0.5 text-[10px] font-medium shrink-0">
+												This device
+											</span>
+										)}
+									</div>
+									<div className="text-xs text-muted-foreground font-mono truncate">
+										{s.ipAddress ?? "unknown IP"} · active{" "}
+										{timeAgo(s.updatedAt)}
+									</div>
+								</div>
+								{!isCurrent && (
+									<Button
+										type="button"
+										size="icon-sm"
+										variant="ghost"
+										className="group shrink-0"
+										aria-label="Revoke session"
+										disabled={revokingToken === s.token}
+										onClick={() => revokeOne(s.token)}
+									>
+										<XIcon className="h-3.5 w-3.5 text-destructive transition-transform duration-150 ease-out group-hover:scale-110 group-active:scale-90" />
+									</Button>
+								)}
+							</li>
+						);
+					})}
+				</ul>
+			)}
+		</Card>
+	);
+}
+
+/**
  * There's no billing provider wired up yet — plan is a manually-set field on
  * the organization (see src/lib/plan.ts) that the rest of the app already
  * enforces (repo limit, Slack/Discord, custom alert rules). This just
@@ -627,9 +796,12 @@ function Settings() {
 					</Reveal>
 				</TabsContent>
 
-				<TabsContent value="security" className="mt-6">
+				<TabsContent value="security" className="mt-6 space-y-4">
 					<Reveal>
 						<SecurityCard />
+					</Reveal>
+					<Reveal delay={0.05}>
+						<SessionsCard />
 					</Reveal>
 				</TabsContent>
 			</Tabs>
