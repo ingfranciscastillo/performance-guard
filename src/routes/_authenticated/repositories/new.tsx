@@ -273,7 +273,6 @@ function ConnectRepo() {
 											return (
 												<motion.li
 													key={r.id}
-													layout
 													variants={staggerItem(reduce)}
 													exit={{
 														opacity: 0,

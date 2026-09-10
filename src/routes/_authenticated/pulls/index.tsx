@@ -123,7 +123,6 @@ function Pulls() {
 												return (
 													<motion.tr
 														key={p.id}
-														layout
 														variants={staggerItem(reduce)}
 														exit={{
 															opacity: 0,

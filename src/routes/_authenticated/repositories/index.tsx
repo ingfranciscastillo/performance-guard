@@ -78,7 +78,6 @@ function Repos() {
 										{repos.map((r) => (
 											<motion.tr
 												key={r.id}
-												layout
 												variants={staggerItem(reduce)}
 												exit={{
 													opacity: 0,

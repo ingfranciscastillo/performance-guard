@@ -217,7 +217,6 @@ function Dashboard() {
 									{alerts.slice(0, 4).map((a) => (
 										<motion.li
 											key={a.id}
-											layout
 											variants={staggerItem(reduce)}
 											exit={{
 												opacity: 0,
@@ -251,9 +250,9 @@ function Dashboard() {
 				</Reveal>
 			</div>
 
-			<div className="mt-6 grid lg:grid-cols-2 gap-4">
-				<Reveal delay={0.15}>
-					<Card className="p-5">
+			<div className="mt-6 grid lg:grid-cols-2 gap-4 min-w-0">
+				<Reveal delay={0.15} className="min-w-0">
+					<Card className="min-w-0 overflow-hidden p-5">
 						<div className="flex items-center justify-between mb-4">
 							<h2 className="font-semibold">Repositories</h2>
 							<Link
@@ -278,7 +277,6 @@ function Dashboard() {
 									{repos.map((r) => (
 										<motion.li
 											key={r.id}
-											layout
 											variants={staggerItem(reduce)}
 											exit={{
 												opacity: 0,
@@ -331,8 +329,8 @@ function Dashboard() {
 					</Card>
 				</Reveal>
 
-				<Reveal delay={0.2}>
-					<Card className="p-5">
+				<Reveal delay={0.2} className="min-w-0">
+					<Card className="min-w-0 overflow-hidden p-5">
 						<div className="flex items-center justify-between mb-4">
 							<h2 className="font-semibold">Recent pull requests</h2>
 							<Link
@@ -357,7 +355,6 @@ function Dashboard() {
 									{pulls.slice(0, 6).map((p) => (
 										<motion.li
 											key={p.id}
-											layout
 											variants={staggerItem(reduce)}
 											exit={{
 												opacity: 0,

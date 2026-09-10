@@ -114,7 +114,6 @@ function Team() {
 									{members.map((m) => (
 										<motion.li
 											key={m.id}
-											layout
 											variants={staggerItem(reduce)}
 											exit={{
 												opacity: 0,
@@ -186,7 +185,6 @@ function Team() {
 										{pendingInvitations.map((inv) => (
 											<motion.li
 												key={inv.id}
-												layout
 												variants={staggerItem(reduce)}
 												exit={{
 													opacity: 0,

@@ -75,7 +75,6 @@ function Alerts() {
 										return (
 											<motion.li
 												key={a.id}
-												layout
 												variants={staggerItem(reduce)}
 												exit={{
 													opacity: 0,
