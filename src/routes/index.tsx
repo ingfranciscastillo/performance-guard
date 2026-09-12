@@ -10,9 +10,11 @@ import {
 	ShieldCheckIcon,
 	StackIcon,
 } from "@phosphor-icons/react";
+import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { animate, motion, useInView, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import toast from "react-hot-toast";
 import { MarketingShell } from "@/components/marketing-shell";
 import { MetricCard } from "@/components/metric-card";
 import { Reveal } from "@/components/reveal";
@@ -25,6 +27,10 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { sendContactMessage } from "@/lib/contact.functions";
 import { getRepo, type MetricKey, PRS, REPOS } from "@/lib/mock-data";
 import { EASE_OUT, staggerContainer, staggerItem } from "@/lib/motion";
 import { OG_IMAGE_META, SITE_URL } from "@/lib/seo";
@@ -85,6 +91,7 @@ function Landing() {
 			<DashboardPreview />
 			<PricingPreview />
 			<Faq />
+			<Contact />
 			<FinalCta />
 		</MarketingShell>
 	);
@@ -128,11 +135,11 @@ function Hero() {
 								<ArrowRightIcon className="ml-1 h-4 w-4 transition-transform duration-150 ease-out group-hover:translate-x-1" />
 							</Button>
 						</Link>
-						<Link to="/dashboard">
+						<a href="/#how">
 							<Button size="lg" variant="outline">
-								View live demo
+								See how it works
 							</Button>
-						</Link>
+						</a>
 					</motion.div>
 				</motion.div>
 
@@ -431,16 +438,15 @@ function DashboardPreview() {
 						One dashboard for every repo, every metric, every regression.
 					</h2>
 					<p className="mt-4 leading-relaxed text-muted-foreground">
-						Historical trends, per-route comparisons, and a leaderboard of the
-						PRs that hurt the most. Drill from a workspace-wide health score
-						down to a single metric.
+						See exactly which repos are healthy and which PRs broke something,
+						without digging through CI logs.
 					</p>
 					<ul className="mt-6 space-y-2 text-sm">
 						{[
-							"30 / 90 / 365-day trends",
-							"Per-branch and per-route comparisons",
-							"Regression leaderboard by PR author",
-							"Export reports as PDF or shareable links",
+							"Workspace-wide performance score, updated on every PR",
+							"Per-repo health score and failing-budget count",
+							"Every PR checked against your budgets, pass or fail",
+							"Alerts to email, Slack, or Discord when something breaks",
 						].map((t) => (
 							<li key={t} className="flex items-center gap-2">
 								<CheckCircleIcon className="h-4 w-4 text-primary" /> {t}
@@ -448,9 +454,9 @@ function DashboardPreview() {
 						))}
 					</ul>
 					<div className="mt-8 flex gap-3">
-						<Link to="/dashboard">
+						<Link to="/login">
 							<Button className="bg-brand text-brand-foreground hover:bg-brand/90">
-								View live demo
+								Connect a repo
 								<ArrowRightIcon className="ml-1 h-4 w-4 transition-transform duration-150 ease-out group-hover:translate-x-1" />
 							</Button>
 						</Link>
@@ -629,6 +635,93 @@ function Faq() {
 	);
 }
 
+function Contact() {
+	const [name, setName] = useState("");
+	const [email, setEmail] = useState("");
+	const [message, setMessage] = useState("");
+
+	const sendMutation = useMutation({
+		mutationFn: sendContactMessage,
+		onSuccess: () => {
+			toast.success("Message sent — we'll get back to you soon.");
+			setName("");
+			setEmail("");
+			setMessage("");
+		},
+		onError: (error) => {
+			toast.error(
+				error instanceof Error ? error.message : "Could not send your message",
+			);
+		},
+	});
+
+	return (
+		<section id="contact" className="mx-auto max-w-2xl px-5 py-24">
+			<Reveal className="text-center">
+				<span className="text-xs uppercase tracking-wider text-primary">
+					Contact
+				</span>
+				<h2 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">
+					Questions before you connect a repo?
+				</h2>
+				<p className="mt-4 text-muted-foreground">
+					Send us a message and we'll get back to you.
+				</p>
+			</Reveal>
+			<Reveal delay={0.08}>
+				<Card className="mt-10 p-6">
+					<form
+						className="grid gap-4"
+						onSubmit={(e) => {
+							e.preventDefault();
+							sendMutation.mutate({ data: { name, email, message } });
+						}}
+					>
+						<div className="grid gap-4 sm:grid-cols-2">
+							<div className="space-y-1.5">
+								<Label htmlFor="contact-name">Name</Label>
+								<Input
+									id="contact-name"
+									value={name}
+									onChange={(e) => setName(e.target.value)}
+									required
+								/>
+							</div>
+							<div className="space-y-1.5">
+								<Label htmlFor="contact-email">Email</Label>
+								<Input
+									id="contact-email"
+									type="email"
+									value={email}
+									onChange={(e) => setEmail(e.target.value)}
+									required
+								/>
+							</div>
+						</div>
+						<div className="space-y-1.5">
+							<Label htmlFor="contact-message">Message</Label>
+							<Textarea
+								id="contact-message"
+								rows={5}
+								value={message}
+								onChange={(e) => setMessage(e.target.value)}
+								required
+							/>
+						</div>
+						<Button
+							type="submit"
+							className="justify-self-start"
+							disabled={sendMutation.isPending}
+						>
+							{sendMutation.isPending ? "Sending…" : "Send message"}
+						</Button>
+					</form>
+				</Card>
+			</Reveal>
+		</section>
+	);
+}
+
 function FinalCta() {
 	return (
 		<section className="mx-auto max-w-6xl px-5 pb-24">
@@ -639,8 +732,8 @@ function FinalCta() {
 						Your next PR shouldn't slow your site down.
 					</h2>
 					<p className="mx-auto mt-3 max-w-md text-muted-foreground">
-						Install Vitalgate in 5 minutes. Free for the first 10 repos,
-						forever.
+						Install Vitalgate in 5 minutes. Free for your first repo, no credit
+						card.
 					</p>
 					<div className="mt-7 flex flex-wrap justify-center gap-3">
 						<Link to="/login">
@@ -652,9 +745,9 @@ function FinalCta() {
 								<ArrowRightIcon className="ml-1 h-4 w-4 transition-transform duration-150 ease-out group-hover:translate-x-1" />
 							</Button>
 						</Link>
-						<Link to="/dashboard">
+						<Link to="/pricing">
 							<Button size="lg" variant="outline">
-								View live demo
+								See pricing
 							</Button>
 						</Link>
 					</div>

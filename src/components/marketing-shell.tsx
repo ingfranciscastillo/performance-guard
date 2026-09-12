@@ -14,7 +14,7 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 						<Logo />
 					</Link>
 					<nav className="ml-10 hidden items-center gap-7 text-sm text-muted-foreground md:flex">
-						<a href="#features" className={linkUnderline}>
+						<a href="/#features" className={linkUnderline}>
 							Features
 						</a>
 						<a href="/#how" className={linkUnderline}>
@@ -25,6 +25,9 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 						</Link>
 						<a href="/#faq" className={linkUnderline}>
 							FAQ
+						</a>
+						<a href="/#contact" className={linkUnderline}>
+							Contact
 						</a>
 					</nav>
 					<div className="ml-auto flex items-center gap-2">
@@ -55,14 +58,14 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 							regression ever reaches production.
 						</p>
 					</div>
-					<div className="grid flex-1 grid-cols-2 gap-8 text-sm sm:grid-cols-4 md:ml-auto">
+					<div className="grid flex-1 grid-cols-2 gap-8 text-sm sm:grid-cols-3 md:ml-auto">
 						<div>
 							<div className="text-xs uppercase tracking-wider text-muted-foreground">
 								Product
 							</div>
 							<div className="mt-3 flex flex-col items-start gap-2">
 								<a
-									href="#features"
+									href="/#features"
 									className={`${linkUnderline} text-foreground/80`}
 								>
 									Features
@@ -74,10 +77,10 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 									Pricing
 								</Link>
 								<Link
-									to="/dashboard"
+									to="/login"
 									className={`${linkUnderline} text-foreground/80`}
 								>
-									Live demo
+									Connect a repo
 								</Link>
 							</div>
 						</div>
@@ -87,16 +90,10 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 							</div>
 							<div className="mt-3 flex flex-col items-start gap-2">
 								<a
-									href="#status"
+									href="/#contact"
 									className={`${linkUnderline} text-foreground/80`}
 								>
-									Status
-								</a>
-								<a
-									href="#docs"
-									className={`${linkUnderline} text-foreground/80`}
-								>
-									Docs
+									Contact
 								</a>
 							</div>
 						</div>
@@ -105,18 +102,12 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 								Legal
 							</div>
 							<div className="mt-3 flex flex-col items-start gap-2">
-								<a
-									href="#privacy"
+								<Link
+									to="/privacy-policy"
 									className={`${linkUnderline} text-foreground/80`}
 								>
 									Privacy
-								</a>
-								<a
-									href="#terms"
-									className={`${linkUnderline} text-foreground/80`}
-								>
-									Terms
-								</a>
+								</Link>
 							</div>
 						</div>
 					</div>
