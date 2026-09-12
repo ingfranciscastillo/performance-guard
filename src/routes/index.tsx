@@ -10,11 +10,9 @@ import {
 	ShieldCheckIcon,
 	StackIcon,
 } from "@phosphor-icons/react";
-import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { animate, motion, useInView, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import toast from "react-hot-toast";
 import { MarketingShell } from "@/components/marketing-shell";
 import { MetricCard } from "@/components/metric-card";
 import { Reveal } from "@/components/reveal";
@@ -27,10 +25,6 @@ import {
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { sendContactMessage } from "@/lib/contact.functions";
 import { getRepo, type MetricKey, PRS, REPOS } from "@/lib/mock-data";
 import { EASE_OUT, staggerContainer, staggerItem } from "@/lib/motion";
 import { OG_IMAGE_META, SITE_URL } from "@/lib/seo";
@@ -91,7 +85,6 @@ function Landing() {
 			<DashboardPreview />
 			<PricingPreview />
 			<Faq />
-			<Contact />
 			<FinalCta />
 		</MarketingShell>
 	);
@@ -630,93 +623,6 @@ function Faq() {
 						</AccordionItem>
 					))}
 				</Accordion>
-			</Reveal>
-		</section>
-	);
-}
-
-function Contact() {
-	const [name, setName] = useState("");
-	const [email, setEmail] = useState("");
-	const [message, setMessage] = useState("");
-
-	const sendMutation = useMutation({
-		mutationFn: sendContactMessage,
-		onSuccess: () => {
-			toast.success("Message sent — we'll get back to you soon.");
-			setName("");
-			setEmail("");
-			setMessage("");
-		},
-		onError: (error) => {
-			toast.error(
-				error instanceof Error ? error.message : "Could not send your message",
-			);
-		},
-	});
-
-	return (
-		<section id="contact" className="mx-auto max-w-2xl px-5 py-24">
-			<Reveal className="text-center">
-				<span className="text-xs uppercase tracking-wider text-primary">
-					Contact
-				</span>
-				<h2 className="mt-2 text-3xl font-extrabold tracking-tight sm:text-4xl">
-					Questions before you connect a repo?
-				</h2>
-				<p className="mt-4 text-muted-foreground">
-					Send us a message and we'll get back to you.
-				</p>
-			</Reveal>
-			<Reveal delay={0.08}>
-				<Card className="mt-10 p-6">
-					<form
-						className="grid gap-4"
-						onSubmit={(e) => {
-							e.preventDefault();
-							sendMutation.mutate({ data: { name, email, message } });
-						}}
-					>
-						<div className="grid gap-4 sm:grid-cols-2">
-							<div className="space-y-1.5">
-								<Label htmlFor="contact-name">Name</Label>
-								<Input
-									id="contact-name"
-									value={name}
-									onChange={(e) => setName(e.target.value)}
-									required
-								/>
-							</div>
-							<div className="space-y-1.5">
-								<Label htmlFor="contact-email">Email</Label>
-								<Input
-									id="contact-email"
-									type="email"
-									value={email}
-									onChange={(e) => setEmail(e.target.value)}
-									required
-								/>
-							</div>
-						</div>
-						<div className="space-y-1.5">
-							<Label htmlFor="contact-message">Message</Label>
-							<Textarea
-								id="contact-message"
-								rows={5}
-								value={message}
-								onChange={(e) => setMessage(e.target.value)}
-								required
-							/>
-						</div>
-						<Button
-							type="submit"
-							className="justify-self-start"
-							disabled={sendMutation.isPending}
-						>
-							{sendMutation.isPending ? "Sending…" : "Send message"}
-						</Button>
-					</form>
-				</Card>
 			</Reveal>
 		</section>
 	);

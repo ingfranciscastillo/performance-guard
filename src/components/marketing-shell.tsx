@@ -26,9 +26,9 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 						<a href="/#faq" className={linkUnderline}>
 							FAQ
 						</a>
-						<a href="/#contact" className={linkUnderline}>
+						<Link to="/contact" className={linkUnderline}>
 							Contact
-						</a>
+						</Link>
 					</nav>
 					<div className="ml-auto flex items-center gap-2">
 						<ThemeToggle />
@@ -89,12 +89,12 @@ export function MarketingShell({ children }: { children: ReactNode }) {
 								Company
 							</div>
 							<div className="mt-3 flex flex-col items-start gap-2">
-								<a
-									href="/#contact"
+								<Link
+									to="/contact"
 									className={`${linkUnderline} text-foreground/80`}
 								>
 									Contact
-								</a>
+								</Link>
 							</div>
 						</div>
 						<div>

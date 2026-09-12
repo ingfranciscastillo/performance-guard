@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { MarketingShell } from "@/components/marketing-shell";
 import { Reveal } from "@/components/reveal";
 import { OG_IMAGE_META, SITE_URL } from "@/lib/seo";
@@ -141,9 +141,9 @@ function PrivacyPolicy() {
 								We keep your data while your account and organization are
 								active. Disconnecting a repository deletes its budgets, pull
 								request history, and alerts immediately. We don't yet have a
-								self-service "delete my account" button — email us (below) and
-								we'll delete your account and personal data by hand, usually
-								within a few days.
+								self-service "delete my account" button — use the contact form
+								(see section 11) and we'll delete your account and personal data
+								by hand, usually within a few days.
 							</p>
 						</section>
 
@@ -171,9 +171,9 @@ function PrivacyPolicy() {
 								You can review and revoke your own active sessions from Settings
 								→ Security at any time. For anything else — access, correction,
 								export, or deletion of your data — use the{" "}
-								<a href="/#contact" className="text-primary hover:underline">
+								<Link to="/contact" className="text-primary hover:underline">
 									contact form
-								</a>
+								</Link>
 								. We'll respond within a reasonable time, generally within 30
 								days.
 							</p>
@@ -199,10 +199,10 @@ function PrivacyPolicy() {
 							<h2>11. Contact</h2>
 							<p>
 								Questions about this policy or your data? Use the{" "}
-								<a href="/#contact" className="text-primary hover:underline">
+								<Link to="/contact" className="text-primary hover:underline">
 									contact form
-								</a>{" "}
-								on the homepage.
+								</Link>
+								.
 							</p>
 						</section>
 					</div>
